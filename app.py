@@ -770,13 +770,12 @@ if __name__ == '__main__':
             db.session.add(admin)
             
             # Create default system status entries
-            conveyor_status = SystemStatus(system_type=SystemType.CONVEYOR)
-            elevator_status = SystemStatus(system_type=SystemType.BUCKET_ELEVATOR)
+            for system in SystemType:
+                if not SystemStatus.query.filter_by(system_type=system).first():
+                    status = SystemStatus(system_type=system)
+                    db.session.add(status)
             
-            db.session.add(conveyor_status)
-            db.session.add(elevator_status)
             db.session.commit()
-            
-            logger.info("Default admin user created (admin/admin123)")
+            logger.info("Default admin user and system status entries created")
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+        app.run(debug=True, host='0.0.0.0', port=5000)

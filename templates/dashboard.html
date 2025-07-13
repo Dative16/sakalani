@@ -505,7 +505,20 @@ function DashboardApp() {
     const { useState, useEffect } = React;
     
     // State
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState(() => {
+        if (window.userData) {
+            const role = window.userData.role;
+            return {
+                id: window.userData.id,
+                username: window.userData.username,
+                name: window.userData.name,
+                role: role,
+                permissions: CONFIG.ROLES[role].permissions,
+                dashboardSections: CONFIG.ROLES[role].dashboardSections
+            };
+        }
+        return null;
+    });
     const [activeSystem, setActiveSystem] = useState('CONVEYOR');
     const [sensorData, setSensorData] = useState({
         CONVEYOR: [],

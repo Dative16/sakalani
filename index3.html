@@ -19,6 +19,26 @@
         .parameter-chart { height: 300px; }
         .system-tab { transition: all 0.3s; }
         .system-tab.active { background: #3b82f6; color: white; }
+        /* Added styles for navigation */
+        .nav-link { 
+            padding: 8px 16px; 
+            border-radius: 6px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        .nav-link:hover {
+            background: rgba(59, 130, 246, 0.1);
+        }
+        .nav-link.active {
+            background: #3b82f6;
+            color: white;
+        }
+        /* Enhanced chart styles */
+        .chart-band-normal { opacity: 0.3; }
+        .chart-band-warning { opacity: 0.3; }
+        .chart-band-danger { opacity: 0.3; }
+        .threshold-line { stroke-width: 2; }
+        .threshold-label { font-size: 10px; fill: #4b5563; }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -144,8 +164,7 @@ const CONFIG = {
         }
     }
 };
-
-// Single Parameter Chart Component
+// Enhanced SingleParameterChart with better band visibility
 function SingleParameterChart({ data, dataKey, sensor, height }) {
     const canvasRef = React.useRef(null);
     
@@ -156,14 +175,14 @@ function SingleParameterChart({ data, dataKey, sensor, height }) {
         const ctx = canvas.getContext('2d');
         const width = canvas.width;
         height = canvas.height;
-        const padding = 30;
+        const padding = 40;  // Increased padding for better labels
         const chartHeight = height - padding * 2;
         const chartWidth = width - padding * 2;
         
         // Clear canvas
         ctx.clearRect(0, 0, width, height);
         
-        // Draw bands
+        // Draw bands with enhanced visibility
         const drawBand = (y1, y2, color) => {
             const yPos1 = height - padding - (y1 * chartHeight / sensor.danger_high);
             const yPos2 = height - padding - (y2 * chartHeight / sensor.danger_high);
@@ -171,19 +190,19 @@ function SingleParameterChart({ data, dataKey, sensor, height }) {
             ctx.fillRect(padding, yPos2, chartWidth, yPos1 - yPos2);
         };
         
-        // Danger bands
-        drawBand(sensor.danger_low, sensor.warning_low, 'rgba(239, 68, 68, 0.1)');
-        drawBand(sensor.warning_high, sensor.danger_high, 'rgba(239, 68, 68, 0.1)');
+        // Danger bands (more prominent)
+        drawBand(sensor.danger_low, sensor.warning_low, 'rgba(239, 68, 68, 0.25)');
+        drawBand(sensor.warning_high, sensor.danger_high, 'rgba(239, 68, 68, 0.25)');
         
-        // Warning bands
-        drawBand(sensor.warning_low, sensor.min, 'rgba(245, 158, 11, 0.1)');
-        drawBand(sensor.max, sensor.warning_high, 'rgba(245, 158, 11, 0.1)');
+        // Warning bands (more prominent)
+        drawBand(sensor.warning_low, sensor.min, 'rgba(245, 158, 11, 0.25)');
+        drawBand(sensor.max, sensor.warning_high, 'rgba(245, 158, 11, 0.25)');
         
         // Normal band
-        drawBand(sensor.min, sensor.max, 'rgba(16, 185, 129, 0.1)');
+        drawBand(sensor.min, sensor.max, 'rgba(16, 185, 129, 0.25)');
         
         // Draw grid
-        ctx.strokeStyle = '#f3f4f6';
+        ctx.strokeStyle = '#e5e7eb';  // Lighter grid color
         ctx.lineWidth = 1;
         
         // Vertical grid
@@ -204,11 +223,11 @@ function SingleParameterChart({ data, dataKey, sensor, height }) {
             ctx.stroke();
         }
         
-        // Draw threshold lines
+        // Draw threshold lines with labels (enhanced)
         const drawThreshold = (value, color, label) => {
             const y = height - padding - (value * chartHeight / sensor.danger_high);
             ctx.strokeStyle = color;
-            ctx.lineWidth = 1.5;
+            ctx.lineWidth = 2;  // Thicker lines
             ctx.setLineDash([5, 3]);
             ctx.beginPath();
             ctx.moveTo(padding, y);
@@ -216,10 +235,12 @@ function SingleParameterChart({ data, dataKey, sensor, height }) {
             ctx.stroke();
             ctx.setLineDash([]);
             
-            // Label
+            // Label with background
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.fillRect(width - padding - 100, y - 15, 100, 15);
             ctx.fillStyle = color;
-            ctx.font = '10px Arial';
-            ctx.fillText(`${label}: ${value}${sensor.unit}`, width - padding - 100, y - 5);
+            ctx.font = 'bold 10px Arial';
+            ctx.fillText(`${label}: ${value}${sensor.unit}`, width - padding - 98, y - 3);
         };
         
         // Draw thresholds
@@ -256,12 +277,19 @@ function SingleParameterChart({ data, dataKey, sensor, height }) {
             ctx.stroke();
         }
         
-        // Draw Y-axis labels
-        ctx.fillStyle = '#6b7280';
+        // Draw Y-axis labels with better formatting
+        ctx.fillStyle = '#4b5563';
         ctx.font = '10px Arial';
         ctx.textAlign = 'right';
-        ctx.fillText(`${sensor.danger_low}${sensor.unit}`, padding - 5, height - padding + 10);
-        ctx.fillText(`${sensor.danger_high}${sensor.unit}`, padding - 5, padding - 5);
+        ctx.textBaseline = 'middle';
+        
+        const valueRange = sensor.danger_high - sensor.danger_low;
+        const steps = 5;
+        for (let i = 0; i <= steps; i++) {
+            const value = sensor.danger_low + (valueRange / steps) * i;
+            const y = height - padding - (value * chartHeight / sensor.danger_high);
+            ctx.fillText(`${value.toFixed(1)}${sensor.unit}`, padding - 5, y);
+        }
         
         // Draw current value
         if (data.length > 0) {
@@ -274,6 +302,7 @@ function SingleParameterChart({ data, dataKey, sensor, height }) {
         
     }, [data, dataKey, sensor, height]);
     
+    
     return React.createElement('div', { className: 'relative bg-white p-4 rounded-lg shadow border border-gray-200' },
         React.createElement('h3', { className: 'text-lg font-semibold mb-2 text-gray-800 flex items-center' },
             React.createElement('span', { className: 'mr-2' }, sensor.icon),
@@ -281,8 +310,8 @@ function SingleParameterChart({ data, dataKey, sensor, height }) {
         ),
         React.createElement('canvas', {
             ref: canvasRef,
-            width: 400,
-            height: height || 300,
+            width: 500,  // Slightly wider for better visibility
+            height: height || 320,  // Increased height
             className: 'w-full parameter-chart'
         })
     );
@@ -301,8 +330,9 @@ function DashboardApp() {
     });
     const [alarms, setAlarms] = useState([]);
     const [connectionStatus, setConnectionStatus] = useState('simulation');
+    const [activeSection, setActiveSection] = useState('dashboard'); // New state for navigation
 
-    // Initialize
+    // ... existing useEffect and functions ...
     useEffect(() => {
         generateDemoData();
         
@@ -644,6 +674,65 @@ function DashboardApp() {
             )
         );
     };
+    // Navigation Component
+    const NavigationBar = () => (
+        React.createElement('div', { className: 'flex space-x-1 mb-2' },
+            user.dashboardSections.includes('dashboard') &&
+            React.createElement('button', {
+                onClick: () => setActiveSection('dashboard'),
+                className: `nav-link ${
+                    activeSection === 'dashboard' ? 'active' : 'text-gray-600 hover:text-blue-600'
+                }`
+            }, 'Dashboard'),
+            
+            user.dashboardSections.includes('alarms') &&
+            React.createElement('button', {
+                onClick: () => setActiveSection('alarms'),
+                className: `nav-link ${
+                    activeSection === 'alarms' ? 'active' : 'text-gray-600 hover:text-blue-600'
+                }`
+            }, 'Alarms'),
+            
+            user.dashboardSections.includes('reports') &&
+            React.createElement('button', {
+                onClick: () => setActiveSection('reports'),
+                className: `nav-link ${
+                    activeSection === 'reports' ? 'active' : 'text-gray-600 hover:text-blue-600'
+                }`
+            }, 'Reports'),
+            
+            user.dashboardSections.includes('settings') &&
+            React.createElement('button', {
+                onClick: () => setActiveSection('settings'),
+                className: `nav-link ${
+                    activeSection === 'settings' ? 'active' : 'text-gray-600 hover:text-blue-600'
+                }`
+            }, 'System Configuration')
+        )
+    );
+
+    // Placeholder components for new sections
+    const AlarmsView = () => (
+        React.createElement('div', { className: 'bg-white p-6 rounded-lg shadow' },
+            React.createElement('h2', { className: 'text-xl font-bold mb-4 text-gray-800' }, 'Alarms Management'),
+            React.createElement('p', { className: 'text-gray-600' }, 'Alarms dashboard will be implemented in the next release. This will show critical system alerts and notifications.')
+        )
+    );
+
+    const ReportsView = () => (
+        React.createElement('div', { className: 'bg-white p-6 rounded-lg shadow' },
+            React.createElement('h2', { className: 'text-xl font-bold mb-4 text-gray-800' }, 'Analytics Reports'),
+            React.createElement('p', { className: 'text-gray-600' }, 'Reports section coming soon. This will provide historical data analysis and performance reports.')
+        )
+    );
+
+    const SettingsView = () => (
+        React.createElement('div', { className: 'bg-white p-6 rounded-lg shadow' },
+            React.createElement('h2', { className: 'text-xl font-bold mb-4 text-gray-800' }, 'System Configuration'),
+            React.createElement('p', { className: 'text-gray-600' }, 'System configuration panel will be available in the next version. This will allow administrators to manage device settings and thresholds.')
+        )
+    );
+
 
     // Main App Render Logic
     if (!user) {
@@ -654,7 +743,7 @@ function DashboardApp() {
         React.createElement('header', { className: 'bg-white shadow-sm border-b border-gray-200' },
             React.createElement('div', { className: 'flex items-center justify-between px-6 py-4' },
                 React.createElement('div', { className: 'flex items-center space-x-4' },
-                    React.createElement('h2', { className: 'text-xl font-bold text-gray-800' }, 'Dashboard')
+                    React.createElement('h2', { className: 'text-xl font-bold text-gray-800' }, 'Industrial IoT Dashboard')
                 ),
                 React.createElement('div', { className: 'flex items-center space-x-4' },
                     React.createElement('div', { className: 'flex items-center space-x-3 bg-gray-50 rounded-lg px-4 py-2' },
@@ -675,9 +764,16 @@ function DashboardApp() {
                         title: 'Logout'
                     }, React.createElement('span', { className: 'text-xl' }, '🚪'))
                 )
+            ),
+            React.createElement('div', { className: 'px-6 pb-2' },
+                React.createElement(NavigationBar)
             )
         ),
         React.createElement('main', { className: 'flex-1 p-6' },
+            activeSection === 'dashboard' ? React.createElement(DashboardView) :
+            activeSection === 'alarms' ? React.createElement(AlarmsView) :
+            activeSection === 'reports' ? React.createElement(ReportsView) :
+            activeSection === 'settings' ? React.createElement(SettingsView) :
             React.createElement(DashboardView)
         )
     );

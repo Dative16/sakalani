@@ -519,7 +519,7 @@ def create_fault_prediction(system_type: SystemType, fault_type: FaultType, read
 def stop_simulation(system_type):
     """API endpoint to stop system simulation"""
     try:
-        system_enum = SystemType(system_type)
+        system_enum = SystemType(system_type.lower())
         simulation_data[system_enum]['running'] = False
         
         # Update system status
@@ -587,7 +587,7 @@ def dashboard():
 def get_sensor_data(system_type):
     """API endpoint to get current sensor data"""
     try:
-        system_enum = SystemType(system_type)
+        system_enum = SystemType(system_type.lower())
         readings = simulation_data[system_enum]['current_readings']
         
         data = {}
@@ -609,7 +609,7 @@ def get_sensor_data(system_type):
 def start_simulation(system_type):
     """API endpoint to start system simulation"""
     try:
-        system_enum = SystemType(system_type)
+        system_enum = SystemType(system_type.lower())
         
         if not simulation_data[system_enum]['running']:
             simulation_data[system_enum]['running'] = True
@@ -632,7 +632,7 @@ def start_simulation(system_type):
 def inject_fault(system_type, fault_type):
     """API endpoint to inject fault for testing"""
     try:
-        system_enum = SystemType(system_type)
+        system_enum = SystemType(system_type.lower())
         fault_enum = FaultType(int(fault_type))
         
         simulation_data[system_enum]['fault_injection'] = fault_enum
@@ -651,7 +651,7 @@ def inject_fault(system_type, fault_type):
 def clear_fault(system_type):
     """API endpoint to clear fault injection"""
     try:
-        system_enum = SystemType(system_type)
+        system_enum = SystemType(system_type.lower())
         simulation_data[system_enum]['fault_injection'] = None
         
         return jsonify({

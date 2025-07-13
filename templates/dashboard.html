@@ -9,7 +9,6 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <style>
-        /* Existing styles */
         .gauge-circle { fill: none; stroke: #e5e7eb; stroke-width: 8; }
         .gauge-progress { fill: none; stroke-width: 8; stroke-linecap: round; }
         .chart-band-normal { fill: #10B981; opacity: 0.2; }
@@ -30,7 +29,6 @@
         .threshold-line { stroke-width: 2; }
         .threshold-label { font-size: 10px; fill: #4b5563; }
         
-        /* New styles for alerts and maintenance */
         .alarm-critical { background-color: #fee2e2; border-left: 4px solid #ef4444; }
         .alarm-high { background-color: #fffbeb; border-left: 4px solid #f59e0b; }
         .alarm-medium { background-color: #dbeafe; border-left: 4px solid #3b82f6; }
@@ -47,6 +45,14 @@
             50% { opacity: 1; }
             100% { opacity: 0.7; }
         }
+        .loader {
+            border-top-color: #3b82f6;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -58,1154 +64,1144 @@
             </div>
         </div>
     </div>
-    <!-- Add this before your React app script -->
-<script>
-    // Pass user data from Flask to JavaScript
-    window.userData = {
-        id: "{{ current_user.id }}",
-        username: "{{ current_user.username }}",
-        role: "{{ current_user.role.value }}",
-        name: "{{ current_user.role.name }}"
-    };
-</script>
 
-<script>
-// Enhanced configuration with fault definitions and maintenance instructions
-const FAULT_DEFINITIONS = {
-    0: {
-        name: 'Ball Bearing Fault',
-        description: 'Bearing wear or damage detected',
-        symptoms: ['Increased vibration', 'Unusual noise', 'Temperature rise'],
-        immediate_actions: [
-            'Reduce operational speed to 50%',
-            'Monitor temperature and vibration closely',
-            'Schedule bearing inspection within 24 hours'
-        ],
-        maintenance_steps: [
-            '1. Safely shutdown the system',
-            '2. Lock out/Tag out (LOTO) procedures',
-            '3. Remove guards and access panels',
-            '4. Inspect bearing housing for damage',
-            '5. Check bearing alignment and lubrication',
-            '6. Replace bearing if necessary',
-            '7. Reassemble and test system'
-        ],
-        tools_required: ['Bearing pullers', 'Alignment tools', 'Lubricants', 'Torque wrench'],
-        safety_precautions: [
-            'Follow LOTO procedures',
-            'Wear safety glasses and gloves',
-            'Ensure proper ventilation',
-            'Use appropriate lifting equipment'
-        ]
-    },
-    1: {
-        name: 'Belt Slippage',
-        description: 'Belt is slipping on pulleys',
-        symptoms: ['Reduced throughput', 'Belt tracking issues', 'Unusual wear patterns'],
-        immediate_actions: [
-            'Reduce load on conveyor',
-            'Check belt tension immediately',
-            'Inspect pulley surfaces for contamination'
-        ],
-        maintenance_steps: [
-            '1. Stop conveyor system safely',
-            '2. Check belt tension using tension gauge',
-            '3. Inspect pulleys for wear or contamination',
-            '4. Clean pulley surfaces if necessary',
-            '5. Adjust belt tension to specification',
-            '6. Check belt tracking and alignment',
-            '7. Resume operation and monitor'
-        ],
-        tools_required: ['Belt tension gauge', 'Cleaning supplies', 'Adjustment tools'],
-        safety_precautions: [
-            'Never adjust belt while running',
-            'Use proper lifting techniques',
-            'Ensure hands are clear of pinch points'
-        ]
-    },
-    2: {
-        name: 'Central Shaft Fault',
-        description: 'Central shaft misalignment or damage',
-        symptoms: ['Excessive vibration', 'Uneven wear', 'Noise from drive assembly'],
-        immediate_actions: [
-            'Reduce speed to minimum operational level',
-            'Monitor vibration levels continuously',
-            'Schedule immediate inspection'
-        ],
-        maintenance_steps: [
-            '1. Shutdown system completely',
-            '2. Perform shaft alignment check',
-            '3. Inspect shaft for cracks or wear',
-            '4. Check coupling connections',
-            '5. Realign shaft if necessary',
-            '6. Replace damaged components',
-            '7. Test alignment after reassembly'
-        ],
-        tools_required: ['Laser alignment tools', 'Dial indicators', 'Shaft keys', 'Coupling tools'],
-        safety_precautions: [
-            'Use proper fall protection',
-            'Ensure stable work platform',
-            'Follow confined space procedures if applicable'
-        ]
-    },
-    3: {
-        name: 'Drive Motor Fault',
-        description: 'Motor performance degradation or failure',
-        symptoms: ['Overcurrent', 'Overheating', 'Unusual noise', 'Reduced power'],
-        immediate_actions: [
-            'Check motor temperature',
-            'Verify electrical connections',
-            'Reduce load if possible',
-            'Contact electrical technician'
-        ],
-        maintenance_steps: [
-            '1. Electrical isolation and LOTO',
-            '2. Check motor windings with megger',
-            '3. Inspect motor bearings',
-            '4. Verify electrical connections',
-            '5. Check motor mounting and alignment',
-            '6. Test motor performance',
-            '7. Replace motor if necessary'
-        ],
-        tools_required: ['Multimeter', 'Megger', 'Infrared thermometer', 'Motor testing equipment'],
-        safety_precautions: [
-            'Qualified electrician required',
-            'Verify electrical isolation',
-            'Use appropriate PPE',
-            'Test equipment before use'
-        ]
-    },
-    4: {
-        name: 'Idler Roller Fault',
-        description: 'Idler roller bearing failure or misalignment',
-        symptoms: ['Belt mistracking', 'Increased noise', 'Uneven belt wear'],
-        immediate_actions: [
-            'Inspect affected roller visually',
-            'Check belt tracking',
-            'Adjust speed if tracking is poor'
-        ],
-        maintenance_steps: [
-            '1. Identify specific faulty roller',
-            '2. Remove belt from roller area',
-            '3. Remove roller from frame',
-            '4. Inspect roller bearings',
-            '5. Replace bearings or entire roller',
-            '6. Reinstall and check alignment',
-            '7. Test belt tracking'
-        ],
-        tools_required: ['Roller removal tools', 'Bearing pullers', 'Alignment tools'],
-        safety_precautions: [
-            'Support belt during roller removal',
-            'Use proper lifting techniques',
-            'Ensure roller is properly secured'
-        ]
-    },
-    5: {
-        name: 'Pulley Fault',
-        description: 'Pulley wear, damage, or misalignment',
-        symptoms: ['Belt damage', 'Slippage', 'Excessive wear', 'Noise'],
-        immediate_actions: [
-            'Inspect pulley surface condition',
-            'Check pulley alignment',
-            'Reduce belt tension if safe to do so'
-        ],
-        maintenance_steps: [
-            '1. Remove belt from pulley',
-            '2. Inspect pulley surface for wear',
-            '3. Check pulley alignment',
-            '4. Measure pulley dimensions',
-            '5. Resurface or replace pulley',
-            '6. Reinstall belt with proper tension',
-            '7. Verify tracking and operation'
-        ],
-        tools_required: ['Pulley alignment tools', 'Measuring calipers', 'Surfacing tools'],
-        safety_precautions: [
-            'Never work on pulleys while belt is running',
-            'Use proper guarding during operation',
-            'Ensure proper belt tension'
-        ]
-    }
-};
-
-const CONFIG = {
-    DASHBOARD: {
-        TITLE: 'Predictive Maintenance Dashboard',
-        SUBTITLE: 'Real-time Monitoring & Anomaly Detection',
-        VERSION: '4.0',
-        MAX_CHART_POINTS: 20,
-        AUTO_REFRESH: true,
-        REFRESH_INTERVAL: 5000
-    },
-    SYSTEMS: {
-        CONVEYOR: {
-            id: 1,
-            name: 'Conveyor Belt',
-            icon: '↔️',
-            sensors: {
-                SPEED: { 
-                    name: 'Speed', unit: 'm/s', 
-                    min: 0.5, max: 3.0, 
-                    warning_low: 0.4, warning_high: 3.1,
-                    danger_low: 0.3, danger_high: 3.2,
-                    color: '#3b82f6', icon: '📊' 
-                },
-                VIBRATION: { 
-                    name: 'Vibration', unit: 'm/s²', 
-                    min: 0, max: 15, 
-                    warning_low: 12, warning_high: 16,
-                    danger_low: 15, danger_high: 20,
-                    color: '#8b5cf6', icon: '📳' 
-                },
-                TEMPERATURE: { 
-                    name: 'Temperature', unit: '°C', 
-                    min: 20, max: 70, 
-                    warning_low: 65, warning_high: 75,
-                    danger_low: 70, danger_high: 80,
-                    color: '#f97316', icon: '🌡️' 
-                },
-                CURRENT: { 
-                    name: 'Current', unit: 'A', 
-                    min: 5, max: 45, 
-                    warning_low: 40, warning_high: 50,
-                    danger_low: 45, danger_high: 55,
-                    color: '#10b981', icon: '⚡' 
-                },
-                LOAD: { 
-                    name: 'Load', unit: '%', 
-                    min: 0, max: 100, 
-                    warning_low: 85, warning_high: 105,
-                    danger_low: 95, danger_high: 110,
-                    color: '#ef4444', icon: '🏋️' 
-                }
-            }
-        },
-        BUCKET_ELEVATOR: {
-            id: 2,
-            name: 'Bucket Elevator',
-            icon: '⬆️',
-            sensors: {
-                SPEED: { 
-                    name: 'Speed', unit: 'm/s', 
-                    min: 0.5, max: 3.0, 
-                    warning_low: 0.4, warning_high: 3.1,
-                    danger_low: 0.3, danger_high: 3.2,
-                    color: '#3b82f6', icon: '📊' 
-                },
-                VIBRATION: { 
-                    name: 'Vibration', unit: 'm/s²', 
-                    min: 0, max: 15, 
-                    warning_low: 12, warning_high: 16,
-                    danger_low: 15, danger_high: 20,
-                    color: '#8b5cf6', icon: '📳' 
-                },
-                TEMPERATURE: { 
-                    name: 'Temperature', unit: '°C', 
-                    min: 20, max: 70, 
-                    warning_low: 65, warning_high: 75,
-                    danger_low: 70, danger_high: 80,
-                    color: '#f97316', icon: '🌡️' 
-                },
-                CURRENT: { 
-                    name: 'Current', unit: 'A', 
-                    min: 5, max: 45, 
-                    warning_low: 40, warning_high: 50,
-                    danger_low: 45, danger_high: 55,
-                    color: '#10b981', icon: '⚡' 
-                },
-                SLIPPAGE: { 
-                    name: 'Slippage', unit: '%', 
-                    min: 0, max: 8, 
-                    warning_low: 7, warning_high: 9,
-                    danger_low: 8, danger_high: 12,
-                    color: '#ef4444', icon: '⚠️' 
-                }
-            }
-        }
-    },
-    ROLES: {
-        operator: { name: 'Operator', permissions: ['view'], dashboardSections: ['dashboard', 'alarms'], color: '#3b82f6' },
-        engineer: { name: 'Engineer', permissions: ['view', 'manage'], dashboardSections: ['dashboard', 'alarms', 'reports'], color: '#f97316' },
-        admin: { name: 'Admin', permissions: ['view', 'manage', 'configure'], dashboardSections: ['dashboard', 'alarms', 'reports', 'settings'], color: '#8b5cf6' }
-    },
-    UTILS: {
-        calculatePercentage: (value, min, max) => Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100)),
-        formatValue: (value, unit) => unit === 'rpm' ? `${Math.round(value)}${unit}` : `${value.toFixed(1)}${unit}`,
-        formatTimestamp: (date) => new Date(date).toLocaleTimeString(),
-        getStatusColor: (value, sensor) => {
-            if (value < sensor.danger_low || value > sensor.danger_high) return '#EF4444';
-            if (value < sensor.warning_low || value > sensor.warning_high) return '#F59E0B';
-            return '#10B981';
-        },
-        getSeverityClass: (severity) => {
-            switch(severity) {
-                case 'CRITICAL': return 'alarm-critical';
-                case 'HIGH': return 'alarm-high';
-                case 'MEDIUM': return 'alarm-medium';
-                case 'LOW': return 'alarm-low';
-                default: return '';
-            }
-        }
-    }
-};
-
-// SingleParameterChart component remains mostly the same, but with improved fault indicators
-function SingleParameterChart({ data, dataKey, sensor, height, anomalies }) {
-     React.useEffect(() => {
-        if (!canvasRef.current || !data.length) return;
-        
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        const width = canvas.width;
-        height = canvas.height;
-        const padding = 40;  // Increased padding for better labels
-        const chartHeight = height - padding * 2;
-        const chartWidth = width - padding * 2;
-        
-        // Clear canvas
-        ctx.clearRect(0, 0, width, height);
-        
-        // Draw bands with enhanced visibility
-        const drawBand = (y1, y2, color) => {
-            const yPos1 = height - padding - (y1 * chartHeight / sensor.danger_high);
-            const yPos2 = height - padding - (y2 * chartHeight / sensor.danger_high);
-            ctx.fillStyle = color;
-            ctx.fillRect(padding, yPos2, chartWidth, yPos1 - yPos2);
+    <script>
+        // Pass user data from Flask to JavaScript
+        window.userData = {
+            id: "{{ current_user.id }}",
+            username: "{{ current_user.username }}",
+            role: "{{ current_user.role.value }}",
+            name: "{{ current_user.role.name }}"
         };
-        
-        // Danger bands (more prominent)
-        drawBand(sensor.danger_low, sensor.warning_low, 'rgba(239, 68, 68, 0.25)');
-        drawBand(sensor.warning_high, sensor.danger_high, 'rgba(239, 68, 68, 0.25)');
-        
-        // Warning bands (more prominent)
-        drawBand(sensor.warning_low, sensor.min, 'rgba(245, 158, 11, 0.25)');
-        drawBand(sensor.max, sensor.warning_high, 'rgba(245, 158, 11, 0.25)');
-        
-        // Normal band
-        drawBand(sensor.min, sensor.max, 'rgba(16, 185, 129, 0.25)');
-        
-        // Draw grid
-        ctx.strokeStyle = '#e5e7eb';  // Lighter grid color
-        ctx.lineWidth = 1;
-        
-        // Vertical grid
-        for (let i = 0; i <= 10; i++) {
-            const x = padding + (chartWidth / 10) * i;
-            ctx.beginPath();
-            ctx.moveTo(x, padding);
-            ctx.lineTo(x, height - padding);
-            ctx.stroke();
-        }
-        
-        // Horizontal grid
-        for (let i = 0; i <= 8; i++) {
-            const y = padding + (chartHeight / 8) * i;
-            ctx.beginPath();
-            ctx.moveTo(padding, y);
-            ctx.lineTo(width - padding, y);
-            ctx.stroke();
-        }
-        
-        // Draw threshold lines with labels (enhanced)
-        const drawThreshold = (value, color, label) => {
-            const y = height - padding - (value * chartHeight / sensor.danger_high);
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 2;  // Thicker lines
-            ctx.setLineDash([5, 3]);
-            ctx.beginPath();
-            ctx.moveTo(padding, y);
-            ctx.lineTo(width - padding, y);
-            ctx.stroke();
-            ctx.setLineDash([]);
-            
-            // Label with background
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-            ctx.fillRect(width - padding - 100, y - 15, 100, 15);
-            ctx.fillStyle = color;
-            ctx.font = 'bold 10px Arial';
-            ctx.fillText(`${label}: ${value}${sensor.unit}`, width - padding - 98, y - 3);
+
+        // Enhanced configuration with fault definitions and maintenance instructions
+        const FAULT_DEFINITIONS = {
+            0: {
+                name: 'Ball Bearing Fault',
+                description: 'Bearing wear or damage detected',
+                symptoms: ['Increased vibration', 'Unusual noise', 'Temperature rise'],
+                immediate_actions: [
+                    'Reduce operational speed to 50%',
+                    'Monitor temperature and vibration closely',
+                    'Schedule bearing inspection within 24 hours'
+                ],
+                maintenance_steps: [
+                    '1. Safely shutdown the system',
+                    '2. Lock out/Tag out (LOTO) procedures',
+                    '3. Remove guards and access panels',
+                    '4. Inspect bearing housing for damage',
+                    '5. Check bearing alignment and lubrication',
+                    '6. Replace bearing if necessary',
+                    '7. Reassemble and test system'
+                ],
+                tools_required: ['Bearing pullers', 'Alignment tools', 'Lubricants', 'Torque wrench'],
+                safety_precautions: [
+                    'Follow LOTO procedures',
+                    'Wear safety glasses and gloves',
+                    'Ensure proper ventilation',
+                    'Use appropriate lifting equipment'
+                ]
+            },
+            1: {
+                name: 'Belt Slippage',
+                description: 'Belt is slipping on pulleys',
+                symptoms: ['Reduced throughput', 'Belt tracking issues', 'Unusual wear patterns'],
+                immediate_actions: [
+                    'Reduce load on conveyor',
+                    'Check belt tension immediately',
+                    'Inspect pulley surfaces for contamination'
+                ],
+                maintenance_steps: [
+                    '1. Stop conveyor system safely',
+                    '2. Check belt tension using tension gauge',
+                    '3. Inspect pulleys for wear or contamination',
+                    '4. Clean pulley surfaces if necessary',
+                    '5. Adjust belt tension to specification',
+                    '6. Check belt tracking and alignment',
+                    '7. Resume operation and monitor'
+                ],
+                tools_required: ['Belt tension gauge', 'Cleaning supplies', 'Adjustment tools'],
+                safety_precautions: [
+                    'Never adjust belt while running',
+                    'Use proper lifting techniques',
+                    'Ensure hands are clear of pinch points'
+                ]
+            },
+            2: {
+                name: 'Central Shaft Fault',
+                description: 'Central shaft misalignment or damage',
+                symptoms: ['Excessive vibration', 'Uneven wear', 'Noise from drive assembly'],
+                immediate_actions: [
+                    'Reduce speed to minimum operational level',
+                    'Monitor vibration levels continuously',
+                    'Schedule immediate inspection'
+                ],
+                maintenance_steps: [
+                    '1. Shutdown system completely',
+                    '2. Perform shaft alignment check',
+                    '3. Inspect shaft for cracks or wear',
+                    '4. Check coupling connections',
+                    '5. Realign shaft if necessary',
+                    '6. Replace damaged components',
+                    '7. Test alignment after reassembly'
+                ],
+                tools_required: ['Laser alignment tools', 'Dial indicators', 'Shaft keys', 'Coupling tools'],
+                safety_precautions: [
+                    'Use proper fall protection',
+                    'Ensure stable work platform',
+                    'Follow confined space procedures if applicable'
+                ]
+            },
+            3: {
+                name: 'Drive Motor Fault',
+                description: 'Motor performance degradation or failure',
+                symptoms: ['Overcurrent', 'Overheating', 'Unusual noise', 'Reduced power'],
+                immediate_actions: [
+                    'Check motor temperature',
+                    'Verify electrical connections',
+                    'Reduce load if possible',
+                    'Contact electrical technician'
+                ],
+                maintenance_steps: [
+                    '1. Electrical isolation and LOTO',
+                    '2. Check motor windings with megger',
+                    '3. Inspect motor bearings',
+                    '4. Verify electrical connections',
+                    '5. Check motor mounting and alignment',
+                    '6. Test motor performance',
+                    '7. Replace motor if necessary'
+                ],
+                tools_required: ['Multimeter', 'Megger', 'Infrared thermometer', 'Motor testing equipment'],
+                safety_precautions: [
+                    'Qualified electrician required',
+                    'Verify electrical isolation',
+                    'Use appropriate PPE',
+                    'Test equipment before use'
+                ]
+            },
+            4: {
+                name: 'Idler Roller Fault',
+                description: 'Idler roller bearing failure or misalignment',
+                symptoms: ['Belt mistracking', 'Increased noise', 'Uneven belt wear'],
+                immediate_actions: [
+                    'Inspect affected roller visually',
+                    'Check belt tracking',
+                    'Adjust speed if tracking is poor'
+                ],
+                maintenance_steps: [
+                    '1. Identify specific faulty roller',
+                    '2. Remove belt from roller area',
+                    '3. Remove roller from frame',
+                    '4. Inspect roller bearings',
+                    '5. Replace bearings or entire roller',
+                    '6. Reinstall and check alignment',
+                    '7. Test belt tracking'
+                ],
+                tools_required: ['Roller removal tools', 'Bearing pullers', 'Alignment tools'],
+                safety_precautions: [
+                    'Support belt during roller removal',
+                    'Use proper lifting techniques',
+                    'Ensure roller is properly secured'
+                ]
+            },
+            5: {
+                name: 'Pulley Fault',
+                description: 'Pulley wear, damage, or misalignment',
+                symptoms: ['Belt damage', 'Slippage', 'Excessive wear', 'Noise'],
+                immediate_actions: [
+                    'Inspect pulley surface condition',
+                    'Check pulley alignment',
+                    'Reduce belt tension if safe to do so'
+                ],
+                maintenance_steps: [
+                    '1. Remove belt from pulley',
+                    '2. Inspect pulley surface for wear',
+                    '3. Check pulley alignment',
+                    '4. Measure pulley dimensions',
+                    '5. Resurface or replace pulley',
+                    '6. Reinstall belt with proper tension',
+                    '7. Verify tracking and operation'
+                ],
+                tools_required: ['Pulley alignment tools', 'Measuring calipers', 'Surfacing tools'],
+                safety_precautions: [
+                    'Never work on pulleys while belt is running',
+                    'Use proper guarding during operation',
+                    'Ensure proper belt tension'
+                ]
+            }
         };
-        
-        // Draw thresholds
-        drawThreshold(sensor.min, '#10B981', 'Min');
-        drawThreshold(sensor.max, '#10B981', 'Max');
-        drawThreshold(sensor.warning_low, '#F59E0B', 'Warn Low');
-        drawThreshold(sensor.warning_high, '#F59E0B', 'Warn High');
-        drawThreshold(sensor.danger_low, '#EF4444', 'Danger Low');
-        drawThreshold(sensor.danger_high, '#EF4444', 'Danger High');
-        
-        // Draw data line
-        if (data.length > 1) {
-            const maxVal = Math.max(...data.map(d => d[dataKey] || 0), sensor.danger_high);
-            const minVal = Math.min(...data.map(d => d[dataKey] || 0), sensor.danger_low);
-            
-            ctx.strokeStyle = sensor.color;
-            ctx.lineWidth = 2.5;
-            ctx.beginPath();
-            
-            data.forEach((point, index) => {
-                const x = padding + (chartWidth / (data.length - 1)) * index;
-                const normalizedValue = (point[dataKey] - minVal) / (maxVal - minVal) || 0;
-                const y = height - padding - (point[dataKey] * chartHeight / sensor.danger_high);
-                
-                if (index === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-                
-                // Draw data point
-                ctx.fillStyle = CONFIG.UTILS.getStatusColor(point[dataKey], sensor);
-                ctx.beginPath();
-                ctx.arc(x, y, 4, 0, 2 * Math.PI);
-                ctx.fill();
-            });
-            ctx.stroke();
-        }
-        
-        // Draw Y-axis labels with better formatting
-        ctx.fillStyle = '#4b5563';
-        ctx.font = '10px Arial';
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'middle';
-        
-        const valueRange = sensor.danger_high - sensor.danger_low;
-        const steps = 5;
-        for (let i = 0; i <= steps; i++) {
-            const value = sensor.danger_low + (valueRange / steps) * i;
-            const y = height - padding - (value * chartHeight / sensor.danger_high);
-            ctx.fillText(`${value.toFixed(1)}${sensor.unit}`, padding - 5, y);
-        }
-        
-        // Draw current value
-        if (data.length > 0) {
-            const latestValue = data[data.length - 1][dataKey];
-            ctx.fillStyle = CONFIG.UTILS.getStatusColor(latestValue, sensor);
-            ctx.font = 'bold 14px Arial';
-            ctx.textAlign = 'left';
-            ctx.fillText(`Current: ${latestValue.toFixed(1)}${sensor.unit}`, padding, 20);
-        }
-        
-    }, [data, dataKey, sensor, height]);
-    
-    // ... implementation details ...
 
-    return React.createElement('div', { className: 'relative bg-white p-4 rounded-lg shadow border border-gray-200' },
-        React.createElement('h3', { className: 'text-lg font-semibold mb-2 text-gray-800 flex items-center' },
-            React.createElement('span', { className: 'mr-2' }, sensor.icon),
-            sensor.name
-        ),
-        React.createElement('canvas', {
-            ref: canvasRef,
-            width: 500,  // Slightly wider for better visibility
-            height: height || 320,  // Increased height
-            className: 'w-full parameter-chart'
-        })
-    );
-}
-
-// Main Dashboard App
-function DashboardApp() {
-    const { useState, useEffect } = React;
-    
-    // State
-    const [user, setUser] = useState(() => {
-        if (window.userData) {
-            const role = window.userData.role;
-            return {
-                id: window.userData.id,
-                username: window.userData.username,
-                name: window.userData.name,
-                role: role,
-                permissions: CONFIG.ROLES[role].permissions,
-                dashboardSections: CONFIG.ROLES[role].dashboardSections
-            };
-        }
-        return null;
-    });
-    const [activeSystem, setActiveSystem] = useState('CONVEYOR');
-    const [sensorData, setSensorData] = useState({
-        CONVEYOR: [],
-        BUCKET_ELEVATOR: []
-    });
-    const [systemStatus, setSystemStatus] = useState({
-        CONVEYOR: { is_running: false, health_score: 100 },
-        BUCKET_ELEVATOR: { is_running: false, health_score: 100 }
-    });
-    const [activeAlarms, setActiveAlarms] = useState([]);
-    const [recentFaults, setRecentFaults] = useState([]);
-    const [connectionStatus, setConnectionStatus] = useState('simulation');
-    const [activeSection, setActiveSection] = useState('dashboard');
-    const [selectedFault, setSelectedFault] = useState(null);
-    const [isSimulationRunning, setIsSimulationRunning] = useState(false);
-    const [faultInjection, setFaultInjection] = useState(null);
-
-    // Fetch data from Flask backend
-    const fetchSensorData = async () => {
-        try {
-            const response = await axios.get(`/api/sensor-data/${activeSystem}`);
-            const data = response.data;
-            
-            // Update sensor data
-            setSensorData(prev => ({
-                ...prev,
-                [activeSystem]: [...prev[activeSystem].slice(-CONFIG.DASHBOARD.MAX_CHART_POINTS + 1), {
-                    timestamp: new Date().toISOString(),
-                    ...data
-                }]
-            }));
-            
-            // Check for anomalies
-            const anomalies = Object.keys(data).filter(key => {
-                const sensor = CONFIG.SYSTEMS[activeSystem].sensors[key.toUpperCase()];
-                if (!sensor) return false;
-                const value = data[key];
-                return value < sensor.danger_low || value > sensor.danger_high;
-            });
-            
-            if (anomalies.length > 0) {
-                // Create alert
-                const alarm = {
-                    id: Date.now(),
-                    timestamp: new Date().toISOString(),
-                    system: activeSystem,
-                    sensors: anomalies,
-                    message: `${anomalies.length} anomaly detected in ${CONFIG.SYSTEMS[activeSystem].name}`
-                };
-                setActiveAlarms(prev => [alarm, ...prev].slice(0, 10));
-            }
-            
-        } catch (error) {
-            console.error('Error fetching sensor data:', error);
-        }
-    };
-
-    const fetchSystemStatus = async () => {
-        try {
-            const response = await axios.get('/api/system-status');
-            setSystemStatus(response.data);
-        } catch (error) {
-            console.error('Error fetching system status:', error);
-        }
-    };
-
-    const fetchRecentFaults = async () => {
-        try {
-            const response = await axios.get('/api/recent-faults');
-            setRecentFaults(response.data);
-        } catch (error) {
-            console.error('Error fetching recent faults:', error);
-        }
-    };
-
-    const fetchActiveAlarms = async () => {
-        try {
-            const response = await axios.get('/api/active-alarms');
-            setActiveAlarms(response.data);
-        } catch (error) {
-            console.error('Error fetching active alarms:', error);
-        }
-    };
-
-    const startSimulation = async () => {
-        try {
-            await axios.get(`/api/start-simulation/${activeSystem}`);
-            setIsSimulationRunning(true);
-        } catch (error) {
-            console.error('Error starting simulation:', error);
-        }
-    };
-
-    const stopSimulation = async () => {
-        try {
-            await axios.get(`/api/stop-simulation/${activeSystem}`);
-            setIsSimulationRunning(false);
-        } catch (error) {
-            console.error('Error stopping simulation:', error);
-        }
-    };
-
-    const injectFault = async (faultType) => {
-        try {
-            await axios.get(`/api/inject-fault/${activeSystem}/${faultType}`);
-            setFaultInjection(faultType);
-        } catch (error) {
-            console.error('Error injecting fault:', error);
-        }
-    };
-
-    const clearFault = async () => {
-        try {
-            await axios.get(`/api/clear-fault/${activeSystem}`);
-            setFaultInjection(null);
-        } catch (error) {
-            console.error('Error clearing fault:', error);
-        }
-    };
-
-    const acknowledgeAlarm = async (alarmId) => {
-        try {
-            await axios.post(`/api/acknowledge-alarm/${alarmId}`);
-            setActiveAlarms(prev => prev.filter(alarm => alarm.id !== alarmId));
-        } catch (error) {
-            console.error('Error acknowledging alarm:', error);
-        }
-    };
-
-    useEffect(() => {
-        // Initial data fetch
-        fetchSystemStatus();
-        fetchRecentFaults();
-        fetchActiveAlarms();
-        
-        const interval = setInterval(() => {
-            if (isSimulationRunning) {
-                fetchSensorData();
-                fetchSystemStatus();
-                fetchActiveAlarms();
-            }
-        }, CONFIG.DASHBOARD.REFRESH_INTERVAL);
-
-        return () => clearInterval(interval);
-    }, [isSimulationRunning, activeSystem]);
-
-    // Sensor Gauge Component with enhanced fault indicators
-    const SensorGauge = ({ sensor, value, title, unit, icon, isAnomaly }) => {
-        const percentage = CONFIG.UTILS.calculatePercentage(value, sensor.danger_low, sensor.danger_high);
-        const isAlert = value < sensor.warning_low || value > sensor.warning_high;
-        const isCritical = value < sensor.danger_low || value > sensor.danger_high;
-        const circumference = 2 * Math.PI * 45;
-        const strokeDasharray = `${(percentage / 100) * circumference} ${circumference}`;
-        const statusColor = CONFIG.UTILS.getStatusColor(value, sensor);
-        
-        return React.createElement('div', { 
-            className: `sensor-card p-4 rounded-lg shadow ${
-                isCritical ? 'border-2 border-red-500 fault-indicator' : 
-                isAlert ? 'border-2 border-yellow-500' : 'border border-gray-200'
-            }` 
-        },
-            React.createElement('div', { className: 'flex items-center justify-between mb-3' },
-                React.createElement('h3', { className: 'text-sm font-semibold text-gray-700 flex items-center' },
-                    React.createElement('span', { className: 'mr-2 text-lg' }, icon),
-                    title
-                ),
-                isCritical && React.createElement('span', { className: 'text-red-500 text-xl animate-pulse' }, '🚨'),
-                isAlert && !isCritical && React.createElement('span', { className: 'text-yellow-500 text-xl' }, '⚠️')
-            ),
-            React.createElement('div', { className: 'flex items-center space-x-4' },
-                React.createElement('div', { className: 'flex-1' },
-                    React.createElement('div', { className: 'text-2xl font-bold text-gray-900 mb-1' }, 
-                        CONFIG.UTILS.formatValue(value, unit)
-                    ),
-                    React.createElement('div', { className: 'text-xs text-gray-500' }, 
-                        `Normal: ${sensor.min}-${sensor.max}${unit}`
-                    ),
-                    React.createElement('div', { 
-                        className: `text-xs font-medium mt-2 px-2 py-1 rounded-full inline-block ${
-                            isCritical ? 'bg-red-100 text-red-700' :
-                            isAlert ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-green-100 text-green-700'
-                        }`
-                    }, isCritical ? 'Critical' : isAlert ? 'Warning' : 'Normal')
-                ),
-                React.createElement('div', { className: 'relative w-24 h-24' },
-                    React.createElement('svg', { className: 'w-full h-full', viewBox: '0 0 100 100' },
-                        React.createElement('circle', {
-                            cx: '50', cy: '50', r: '45',
-                            className: 'gauge-circle'
-                        }),
-                        React.createElement('circle', {
-                            cx: '50', cy: '50', r: '45',
-                            className: 'gauge-progress',
-                            stroke: statusColor,
-                            strokeDasharray: strokeDasharray,
-                            strokeDashoffset: '0'
-                        })
-                    ),
-                    React.createElement('div', { className: 'absolute inset-0 flex items-center justify-center' },
-                        React.createElement('span', { className: 'text-lg font-bold', style: { color: statusColor } }, `${Math.round(percentage)}%`)
-                    )
-                )
-            )
-        );
-    };
-
-    // System Tabs
-    const SystemTabs = () => (
-        React.createElement('div', { className: 'flex space-x-2 mb-6' },
-            Object.entries(CONFIG.SYSTEMS).map(([key, system]) => 
-                React.createElement('button', {
-                    key: key,
-                    onClick: () => setActiveSystem(key),
-                    className: `system-tab px-4 py-2 rounded-lg font-medium ${
-                        activeSystem === key ? 'active' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`
-                },
-                    React.createElement('span', { className: 'mr-2' }, system.icon),
-                    system.name
-                )
-            )
-        )
-    );
-
-    // Navigation Component
-    const NavigationBar = () => (
-        React.createElement('div', { className: 'flex space-x-1 mb-2' },
-            user.dashboardSections.includes('dashboard') &&
-            React.createElement('button', {
-                onClick: () => setActiveSection('dashboard'),
-                className: `nav-link ${
-                    activeSection === 'dashboard' ? 'active' : 'text-gray-600 hover:text-blue-600'
-                }`
-            }, 'Dashboard'),
-            
-            user.dashboardSections.includes('alarms') &&
-            React.createElement('button', {
-                onClick: () => setActiveSection('alarms'),
-                className: `nav-link ${
-                    activeSection === 'alarms' ? 'active' : 'text-gray-600 hover:text-blue-600'
-                }`
-            }, 'Alarms'),
-            
-            user.dashboardSections.includes('reports') &&
-            React.createElement('button', {
-                onClick: () => setActiveSection('reports'),
-                className: `nav-link ${
-                    activeSection === 'reports' ? 'active' : 'text-gray-600 hover:text-blue-600'
-                }`
-            }, 'Reports'),
-            
-            user.dashboardSections.includes('settings') &&
-            React.createElement('button', {
-                onClick: () => setActiveSection('settings'),
-                className: `nav-link ${
-                    activeSection === 'settings' ? 'active' : 'text-gray-600 hover:text-blue-600'
-                }`
-            }, 'System Configuration')
-        )
-    );
-
-    // Dashboard View Component
-    const DashboardView = () => {
-        const system = CONFIG.SYSTEMS[activeSystem];
-        const data = sensorData[activeSystem] || [];
-        const latestData = data.length > 0 ? data[data.length - 1] : {};
-        const status = systemStatus[activeSystem];
-        
-        return React.createElement('div', { className: 'space-y-6' },
-            React.createElement('div', { className: 'flex justify-between items-center' },
-                React.createElement('h1', { className: 'text-2xl font-bold text-gray-900' }, 'Real-Time Monitoring'),
-                React.createElement('div', { className: 'flex items-center space-x-4' },
-                    React.createElement('span', { 
-                        className: `inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                            status.is_running ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                        }`
-                    },
-                        React.createElement('span', { className: 'w-2 h-2 rounded-full bg-current mr-2' }),
-                        status.is_running ? 'System Online' : 'System Offline'
-                    ),
-                    React.createElement('span', { className: 'text-sm text-gray-600 font-medium' },
-                        `Health: ${status.health_score.toFixed(1)}%`
-                    ),
-                    React.createElement('span', { className: 'text-sm text-gray-600 font-medium' },
-                        `Last Update: ${new Date().toLocaleTimeString()}`
-                    )
-                )
-            ),
-            
-            React.createElement(SystemTabs),
-            
-            React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4' },
-                Object.entries(system.sensors).map(([key, sensor]) => {
-                    const sensorKey = key.toLowerCase();
-                    const value = latestData[sensorKey] || 0;
-                    const isAnomaly = value < sensor.danger_low || value > sensor.danger_high;
-                    
-                    return React.createElement(SensorGauge, {
-                        key: key,
-                        sensor: sensor,
-                        value: value,
-                        title: sensor.name,
-                        unit: sensor.unit,
-                        icon: sensor.icon,
-                        isAnomaly: isAnomaly
-                    });
-                })
-            ),
-            
-            React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-6' },
-                Object.entries(system.sensors).map(([key, sensor]) => {
-                    const sensorKey = key.toLowerCase();
-                    const anomalies = data.filter(d => {
-                        const value = d[sensorKey];
-                        return value < sensor.danger_low || value > sensor.danger_high;
-                    }).map(d => d.timestamp);
-                    
-                    return React.createElement(SingleParameterChart, {
-                        key: key,
-                        data: data,
-                        dataKey: sensorKey,
-                        sensor: sensor,
-                        height: 300,
-                        anomalies: anomalies
-                    });
-                })
-            ),
-            
-            // Simulation controls
-            React.createElement('div', { className: 'bg-white p-4 rounded-lg shadow' },
-                React.createElement('h2', { className: 'text-lg font-semibold mb-4' }, 'Simulation Controls'),
-                React.createElement('div', { className: 'flex space-x-4' },
-                    !isSimulationRunning ? 
-                        React.createElement('button', {
-                            onClick: startSimulation,
-                            className: 'bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md action-button'
-                        }, 'Start Simulation') :
-                        React.createElement('button', {
-                            onClick: stopSimulation,
-                            className: 'bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md action-button'
-                        }, 'Stop Simulation'),
-                    
-                    React.createElement('div', { className: 'flex-1' },
-                        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Inject Fault'),
-                        React.createElement('select', {
-                            value: faultInjection || '',
-                            onChange: (e) => injectFault(e.target.value),
-                            className: 'w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm',
-                            disabled: !isSimulationRunning
+        const CONFIG = {
+            DASHBOARD: {
+                TITLE: 'Predictive Maintenance Dashboard',
+                SUBTITLE: 'Real-time Monitoring & Anomaly Detection',
+                VERSION: '4.0',
+                MAX_CHART_POINTS: 20,
+                AUTO_REFRESH: true,
+                REFRESH_INTERVAL: 5000
+            },
+            SYSTEMS: {
+                CONVEYOR: {
+                    id: 1,
+                    name: 'Conveyor Belt',
+                    icon: '↔️',
+                    sensors: {
+                        SPEED: { 
+                            name: 'Speed', unit: 'm/s', 
+                            min: 0.5, max: 3.0, 
+                            warning_low: 0.4, warning_high: 3.1,
+                            danger_low: 0.3, danger_high: 3.2,
+                            color: '#3b82f6', icon: '📊' 
                         },
-                            React.createElement('option', { value: '' }, 'Select Fault Type'),
-                            Object.entries(FAULT_DEFINITIONS).map(([id, fault]) => 
-                                React.createElement('option', { key: id, value: id }, fault.name)
-                            )
-                        )
-                    ),
-                    
-                    faultInjection && 
-                        React.createElement('button', {
-                            onClick: clearFault,
-                            className: 'bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md action-button'
-                        }, 'Clear Fault')
-                )
-            )
-        );
-    };
+                        VIBRATION: { 
+                            name: 'Vibration', unit: 'm/s²', 
+                            min: 0, max: 15, 
+                            warning_low: 12, warning_high: 16,
+                            danger_low: 15, danger_high: 20,
+                            color: '#8b5cf6', icon: '📳' 
+                        },
+                        TEMPERATURE: { 
+                            name: 'Temperature', unit: '°C', 
+                            min: 20, max: 70, 
+                            warning_low: 65, warning_high: 75,
+                            danger_low: 70, danger_high: 80,
+                            color: '#f97316', icon: '🌡️' 
+                        },
+                        CURRENT: { 
+                            name: 'Current', unit: 'A', 
+                            min: 5, max: 45, 
+                            warning_low: 40, warning_high: 50,
+                            danger_low: 45, danger_high: 55,
+                            color: '#10b981', icon: '⚡' 
+                        },
+                        LOAD: { 
+                            name: 'Load', unit: '%', 
+                            min: 0, max: 100, 
+                            warning_low: 85, warning_high: 105,
+                            danger_low: 95, danger_high: 110,
+                            color: '#ef4444', icon: '🏋️' 
+                        }
+                    }
+                },
+                BUCKET_ELEVATOR: {
+                    id: 2,
+                    name: 'Bucket Elevator',
+                    icon: '⬆️',
+                    sensors: {
+                        SPEED: { 
+                            name: 'Speed', unit: 'm/s', 
+                            min: 0.5, max: 3.0, 
+                            warning_low: 0.4, warning_high: 3.1,
+                            danger_low: 0.3, danger_high: 3.2,
+                            color: '#3b82f6', icon: '📊' 
+                        },
+                        VIBRATION: { 
+                            name: 'Vibration', unit: 'm/s²', 
+                            min: 0, max: 15, 
+                            warning_low: 12, warning_high: 16,
+                            danger_low: 15, danger_high: 20,
+                            color: '#8b5cf6', icon: '📳' 
+                        },
+                        TEMPERATURE: { 
+                            name: 'Temperature', unit: '°C', 
+                            min: 20, max: 70, 
+                            warning_low: 65, warning_high: 75,
+                            danger_low: 70, danger_high: 80,
+                            color: '#f97316', icon: '🌡️' 
+                        },
+                        CURRENT: { 
+                            name: 'Current', unit: 'A', 
+                            min: 5, max: 45, 
+                            warning_low: 40, warning_high: 50,
+                            danger_low: 45, danger_high: 55,
+                            color: '#10b981', icon: '⚡' 
+                        },
+                        SLIPPAGE: { 
+                            name: 'Slippage', unit: '%', 
+                            min: 0, max: 8, 
+                            warning_low: 7, warning_high: 9,
+                            danger_low: 8, danger_high: 12,
+                            color: '#ef4444', icon: '⚠️' 
+                        }
+                    }
+                }
+            },
+            ROLES: {
+                operator: { name: 'Operator', permissions: ['view'], dashboardSections: ['dashboard', 'alarms'], color: '#3b82f6' },
+                engineer: { name: 'Engineer', permissions: ['view', 'manage'], dashboardSections: ['dashboard', 'alarms', 'reports'], color: '#f97316' },
+                admin: { name: 'Admin', permissions: ['view', 'manage', 'configure'], dashboardSections: ['dashboard', 'alarms', 'reports', 'settings'], color: '#8b5cf6' }
+            },
+            UTILS: {
+                calculatePercentage: (value, min, max) => Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100)),
+                formatValue: (value, unit) => unit === 'rpm' ? `${Math.round(value)}${unit}` : `${value.toFixed(1)}${unit}`,
+                formatTimestamp: (date) => new Date(date).toLocaleTimeString(),
+                getStatusColor: (value, sensor) => {
+                    if (value < sensor.danger_low || value > sensor.danger_high) return '#EF4444';
+                    if (value < sensor.warning_low || value > sensor.warning_high) return '#F59E0B';
+                    return '#10B981';
+                },
+                getSeverityClass: (severity) => {
+                    switch(severity) {
+                        case 'CRITICAL': return 'alarm-critical';
+                        case 'HIGH': return 'alarm-high';
+                        case 'MEDIUM': return 'alarm-medium';
+                        case 'LOW': return 'alarm-low';
+                        default: return '';
+                    }
+                }
+            }
+        };
 
-    // Alarms View Component
-    const AlarmsView = () => (
-        React.createElement('div', { className: 'space-y-6' },
-            React.createElement('div', { className: 'bg-white p-4 rounded-lg shadow' },
-                React.createElement('h2', { className: 'text-xl font-bold mb-4 text-gray-800' }, 'Active Alarms'),
-                activeAlarms.length === 0 ? 
-                    React.createElement('p', { className: 'text-gray-500 text-center py-4' }, 'No active alarms') :
-                    React.createElement('div', { className: 'space-y-3' },
-                        activeAlarms.map(alarm => {
-                            const faultInfo = FAULT_DEFINITIONS[alarm.fault_type];
-                            const severityClass = CONFIG.UTILS.getSeverityClass(alarm.severity);
-                            
-                            return React.createElement('div', { 
-                                key: alarm.id,
-                                className: `p-4 rounded-lg ${severityClass}`
-                            },
-                                React.createElement('div', { className: 'flex justify-between items-start' },
-                                    React.createElement('div', null,
-                                        React.createElement('h3', { className: 'font-bold text-lg' }, faultInfo?.name || `Fault ${alarm.fault_type}`),
-                                        React.createElement('p', { className: 'text-sm text-gray-600' }, faultInfo?.description || ''),
-                                        React.createElement('div', { className: 'mt-2 flex items-center space-x-2' },
-                                            React.createElement('span', { 
-                                                className: `px-2 py-1 rounded-full text-xs font-medium ${
-                                                    alarm.severity === 'CRITICAL' ? 'bg-red-100 text-red-800' : 
-                                                    alarm.severity === 'HIGH' ? 'bg-orange-100 text-orange-800' : 
-                                                    'bg-yellow-100 text-yellow-800'
-                                                }`
-                                            }, alarm.severity),
-                                            React.createElement('span', { className: 'text-sm' }, `Confidence: ${Math.round(alarm.confidence * 100)}%`),
-                                            React.createElement('span', { className: 'text-sm' }, new Date(alarm.timestamp).toLocaleString())
-                                        )
-                                    ),
-                                    React.createElement('div', { className: 'flex space-x-2' },
-                                        React.createElement('button', {
-                                            onClick: () => acknowledgeAlarm(alarm.id),
-                                            className: 'bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm'
-                                        }, 'Acknowledge'),
-                                        React.createElement('button', {
-                                            onClick: () => setSelectedFault(alarm),
-                                            className: 'bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm'
-                                        }, 'Details')
-                                    )
-                                )
-                            );
-                        })
-                    )
-            ),
+        // SingleParameterChart component - FIXED
+        function SingleParameterChart({ data, dataKey, sensor, height }) {
+            const canvasRef = React.useRef(null);
             
-            React.createElement('div', { className: 'bg-white p-4 rounded-lg shadow' },
-                React.createElement('h2', { className: 'text-xl font-bold mb-4 text-gray-800' }, 'Recent Faults'),
-                recentFaults.length === 0 ? 
-                    React.createElement('p', { className: 'text-gray-500 text-center py-4' }, 'No recent faults') :
-                    React.createElement('div', { className: 'space-y-3' },
-                        recentFaults.map(fault => {
-                            const faultInfo = FAULT_DEFINITIONS[fault.fault_type];
-                            
-                            return React.createElement('div', { 
-                                key: fault.id,
-                                className: 'p-4 border border-gray-200 rounded-lg'
-                            },
-                                React.createElement('div', { className: 'flex justify-between' },
-                                    React.createElement('h3', { className: 'font-bold' }, faultInfo?.name || `Fault ${fault.fault_type}`),
-                                    React.createElement('span', { className: 'text-sm text-gray-500' }, new Date(fault.timestamp).toLocaleDateString())
-                                ),
-                                React.createElement('p', { className: 'text-sm text-gray-600 mt-1' }, faultInfo?.description || ''),
-                                React.createElement('button', {
-                                    onClick: () => setSelectedFault(fault),
-                                    className: 'text-blue-600 hover:text-blue-800 text-sm mt-2'
-                                }, 'View Details')
-                            );
-                        })
-                    )
-            )
-        )
-    );
-
-    // Fault Detail Modal
-    const FaultDetailModal = ({ fault, onClose }) => {
-        if (!fault) return null;
-        
-        const faultInfo = FAULT_DEFINITIONS[fault.fault_type] || {};
-        const severityClass = CONFIG.UTILS.getSeverityClass(fault.severity);
-        
-        return React.createElement('div', { className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50' },
-            React.createElement('div', { className: 'bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto' },
-                React.createElement('div', { className: `p-6 ${severityClass}` },
-                    React.createElement('div', { className: 'flex justify-between items-start' },
-                        React.createElement('h2', { className: 'text-2xl font-bold' }, faultInfo.name),
-                        React.createElement('button', { 
-                            onClick: onClose,
-                            className: 'text-gray-500 hover:text-gray-700 text-2xl'
-                        }, '×')
-                    ),
-                    React.createElement('p', { className: 'mt-2 text-gray-700' }, faultInfo.description),
-                    React.createElement('div', { className: 'mt-4 flex space-x-4' },
-                        React.createElement('div', null,
-                            React.createElement('span', { className: 'font-medium' }, 'Severity:'),
-                            React.createElement('span', { 
-                                className: `ml-2 px-2 py-1 rounded-full text-sm ${
-                                    fault.severity === 'CRITICAL' ? 'bg-red-100 text-red-800' : 
-                                    fault.severity === 'HIGH' ? 'bg-orange-100 text-orange-800' : 
-                                    'bg-yellow-100 text-yellow-800'
-                                }`
-                            }, fault.severity)
-                        ),
-                        React.createElement('div', null,
-                            React.createElement('span', { className: 'font-medium' }, 'Confidence:'),
-                            React.createElement('span', { className: 'ml-2' }, `${Math.round(fault.confidence * 100)}%`)
-                        ),
-                        React.createElement('div', null,
-                            React.createElement('span', { className: 'font-medium' }, 'Detected:'),
-                            React.createElement('span', { className: 'ml-2' }, new Date(fault.timestamp).toLocaleString())
-                        )
-                    )
-                ),
+            React.useEffect(() => {
+                if (!canvasRef.current || !data.length) return;
                 
-                React.createElement('div', { className: 'p-6' },
-                    React.createElement('h3', { className: 'text-xl font-bold mb-3' }, 'Symptoms'),
-                    React.createElement('ul', { className: 'list-disc pl-5 mb-6' },
-                        faultInfo.symptoms?.map((symptom, index) => 
-                            React.createElement('li', { key: index, className: 'mb-1' }, symptom)
-                        )
-                    ),
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                const width = canvas.width;
+                height = canvas.height;
+                const padding = 40;
+                const chartHeight = height - padding * 2;
+                const chartWidth = width - padding * 2;
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, width, height);
+                
+                // Draw bands
+                const drawBand = (y1, y2, color) => {
+                    const yPos1 = height - padding - (y1 * chartHeight / sensor.danger_high);
+                    const yPos2 = height - padding - (y2 * chartHeight / sensor.danger_high);
+                    ctx.fillStyle = color;
+                    ctx.fillRect(padding, yPos2, chartWidth, yPos1 - yPos2);
+                };
+                
+                // Danger bands
+                drawBand(sensor.danger_low, sensor.warning_low, 'rgba(239, 68, 68, 0.25)');
+                drawBand(sensor.warning_high, sensor.danger_high, 'rgba(239, 68, 68, 0.25)');
+                
+                // Warning bands
+                drawBand(sensor.warning_low, sensor.min, 'rgba(245, 158, 11, 0.25)');
+                drawBand(sensor.max, sensor.warning_high, 'rgba(245, 158, 11, 0.25)');
+                
+                // Normal band
+                drawBand(sensor.min, sensor.max, 'rgba(16, 185, 129, 0.25)');
+                
+                // Draw grid
+                ctx.strokeStyle = '#e5e7eb';
+                ctx.lineWidth = 1;
+                
+                // Vertical grid
+                for (let i = 0; i <= 10; i++) {
+                    const x = padding + (chartWidth / 10) * i;
+                    ctx.beginPath();
+                    ctx.moveTo(x, padding);
+                    ctx.lineTo(x, height - padding);
+                    ctx.stroke();
+                }
+                
+                // Horizontal grid
+                for (let i = 0; i <= 8; i++) {
+                    const y = padding + (chartHeight / 8) * i;
+                    ctx.beginPath();
+                    ctx.moveTo(padding, y);
+                    ctx.lineTo(width - padding, y);
+                    ctx.stroke();
+                }
+                
+                // Draw threshold lines with labels
+                const drawThreshold = (value, color, label) => {
+                    const y = height - padding - (value * chartHeight / sensor.danger_high);
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([5, 3]);
+                    ctx.beginPath();
+                    ctx.moveTo(padding, y);
+                    ctx.lineTo(width - padding, y);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
                     
-                    React.createElement('h3', { className: 'text-xl font-bold mb-3' }, 'Immediate Actions'),
-                    React.createElement('ul', { className: 'list-disc pl-5 mb-6' },
-                        faultInfo.immediate_actions?.map((action, index) => 
-                            React.createElement('li', { key: index, className: 'mb-1' }, action)
-                        )
-                    ),
+                    // Label with background
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.fillRect(width - padding - 100, y - 15, 100, 15);
+                    ctx.fillStyle = color;
+                    ctx.font = 'bold 10px Arial';
+                    ctx.fillText(`${label}: ${value}${sensor.unit}`, width - padding - 98, y - 3);
+                };
+                
+                // Draw thresholds
+                drawThreshold(sensor.min, '#10B981', 'Min');
+                drawThreshold(sensor.max, '#10B981', 'Max');
+                drawThreshold(sensor.warning_low, '#F59E0B', 'Warn Low');
+                drawThreshold(sensor.warning_high, '#F59E0B', 'Warn High');
+                drawThreshold(sensor.danger_low, '#EF4444', 'Danger Low');
+                drawThreshold(sensor.danger_high, '#EF4444', 'Danger High');
+                
+                // Draw data line - FIXED: Access .value property
+                if (data.length > 1) {
+                    // Extract values correctly
+                    const values = data.map(d => d[dataKey]?.value || 0);
+                    const maxVal = Math.max(...values, sensor.danger_high);
+                    const minVal = Math.min(...values, sensor.danger_low);
                     
-                    React.createElement('h3', { className: 'text-xl font-bold mb-3' }, 'Maintenance Procedure'),
-                    React.createElement('div', { className: 'maintenance-card mb-6' },
-                        faultInfo.maintenance_steps?.map((step, index) => 
-                            React.createElement('div', { key: index, className: 'maintenance-step' }, step)
-                        )
-                    ),
+                    ctx.strokeStyle = sensor.color;
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath();
                     
-                    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
-                        React.createElement('div', null,
-                            React.createElement('h4', { className: 'font-bold mb-2' }, 'Required Tools'),
-                            React.createElement('p', null, faultInfo.tools_required?.join(', ') || 'None specified')
+                    data.forEach((point, index) => {
+                        const x = padding + (chartWidth / (data.length - 1)) * index;
+                        const pointValue = point[dataKey]?.value || 0;  // ACCESS VALUE PROPERTY
+                        const y = height - padding - (pointValue * chartHeight / sensor.danger_high);
+                        
+                        if (index === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                        
+                        // Draw data point
+                        ctx.fillStyle = CONFIG.UTILS.getStatusColor(pointValue, sensor);
+                        ctx.beginPath();
+                        ctx.arc(x, y, 4, 0, 2 * Math.PI);
+                        ctx.fill();
+                    });
+                    ctx.stroke();
+                }
+                
+                // Draw Y-axis labels
+                ctx.fillStyle = '#4b5563';
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+                
+                const valueRange = sensor.danger_high - sensor.danger_low;
+                const steps = 5;
+                for (let i = 0; i <= steps; i++) {
+                    const value = sensor.danger_low + (valueRange / steps) * i;
+                    const y = height - padding - (value * chartHeight / sensor.danger_high);
+                    ctx.fillText(`${value.toFixed(1)}${sensor.unit}`, padding - 5, y);
+                }
+                
+                // Draw current value - FIXED: Access .value property
+                if (data.length > 0) {
+                    const latestValue = data[data.length - 1][dataKey]?.value || 0;  // ACCESS VALUE PROPERTY
+                    ctx.fillStyle = CONFIG.UTILS.getStatusColor(latestValue, sensor);
+                    ctx.font = 'bold 14px Arial';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(`Current: ${latestValue.toFixed(1)}${sensor.unit}`, padding, 20);
+                }
+                
+            }, [data, dataKey, sensor, height]);
+            
+            return React.createElement('div', { className: 'relative bg-white p-4 rounded-lg shadow border border-gray-200' },
+                React.createElement('h3', { className: 'text-lg font-semibold mb-2 text-gray-800 flex items-center' },
+                    React.createElement('span', { className: 'mr-2' }, sensor.icon),
+                    sensor.name
+                ),
+                React.createElement('canvas', {
+                    ref: canvasRef,
+                    width: 500,
+                    height: height || 320,
+                    className: 'w-full parameter-chart'
+                })
+            );
+        }
+
+        // Main Dashboard App
+        function DashboardApp() {
+            const { useState, useEffect } = React;
+            
+            // State
+            const [user, setUser] = useState(() => {
+                if (window.userData) {
+                    const role = window.userData.role;
+                    return {
+                        id: window.userData.id,
+                        username: window.userData.username,
+                        name: window.userData.name,
+                        role: role,
+                        permissions: CONFIG.ROLES[role].permissions,
+                        dashboardSections: CONFIG.ROLES[role].dashboardSections
+                    };
+                }
+                return null;
+            });
+            const [activeSystem, setActiveSystem] = useState('CONVEYOR');
+            const [sensorData, setSensorData] = useState({
+                CONVEYOR: [],
+                BUCKET_ELEVATOR: []
+            });
+            const [systemStatus, setSystemStatus] = useState({
+                CONVEYOR: { is_running: false, health_score: 100 },
+                BUCKET_ELEVATOR: { is_running: false, health_score: 100 }
+            });
+            const [activeAlarms, setActiveAlarms] = useState([]);
+            const [recentFaults, setRecentFaults] = useState([]);
+            const [activeSection, setActiveSection] = useState('dashboard');
+            const [selectedFault, setSelectedFault] = useState(null);
+            const [isSimulationRunning, setIsSimulationRunning] = useState(false);
+            const [faultInjection, setFaultInjection] = useState(null);
+            const [isLoading, setIsLoading] = useState(true);
+
+            // Fetch data from Flask backend
+            const fetchSensorData = async () => {
+                try {
+                    const response = await axios.get(`/api/sensor-data/${activeSystem}`);
+                    const data = response.data;
+                    
+                    // Convert keys to uppercase to match CONFIG
+                    const normalizedData = {};
+                    Object.keys(data).forEach(key => {
+                        const upperKey = key.toUpperCase();
+                        normalizedData[upperKey] = data[key];
+                    });
+                    
+                    // Update sensor data
+                    setSensorData(prev => ({
+                        ...prev,
+                        [activeSystem]: [...prev[activeSystem].slice(-CONFIG.DASHBOARD.MAX_CHART_POINTS + 1), {
+                            timestamp: new Date().toISOString(),
+                            ...normalizedData
+                        }]
+                    }));
+                    
+                } catch (error) {
+                    console.error('Error fetching sensor data:', error);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const fetchSystemStatus = async () => {
+                try {
+                    const response = await axios.get('/api/system-status');
+                    setSystemStatus(response.data);
+                } catch (error) {
+                    console.error('Error fetching system status:', error);
+                }
+            };
+
+            const fetchRecentFaults = async () => {
+                try {
+                    const response = await axios.get('/api/recent-faults');
+                    setRecentFaults(response.data);
+                } catch (error) {
+                    console.error('Error fetching recent faults:', error);
+                }
+            };
+
+            const fetchActiveAlarms = async () => {
+                try {
+                    const response = await axios.get('/api/active-alarms');
+                    setActiveAlarms(response.data);
+                } catch (error) {
+                    console.error('Error fetching active alarms:', error);
+                }
+            };
+
+            const startSimulation = async () => {
+                try {
+                    setIsLoading(true);
+                    await axios.get(`/api/start-simulation/${activeSystem}`);
+                    setIsSimulationRunning(true);
+                } catch (error) {
+                    console.error('Error starting simulation:', error);
+                    setIsLoading(false);
+                }
+            };
+
+            const stopSimulation = async () => {
+                try {
+                    await axios.get(`/api/stop-simulation/${activeSystem}`);
+                    setIsSimulationRunning(false);
+                } catch (error) {
+                    console.error('Error stopping simulation:', error);
+                }
+            };
+
+            const injectFault = async (faultType) => {
+                try {
+                    await axios.get(`/api/inject-fault/${activeSystem}/${faultType}`);
+                    setFaultInjection(faultType);
+                } catch (error) {
+                    console.error('Error injecting fault:', error);
+                }
+            };
+
+            const clearFault = async () => {
+                try {
+                    await axios.get(`/api/clear-fault/${activeSystem}`);
+                    setFaultInjection(null);
+                } catch (error) {
+                    console.error('Error clearing fault:', error);
+                }
+            };
+
+            const acknowledgeAlarm = async (alarmId) => {
+                try {
+                    await axios.post(`/api/acknowledge-alarm/${alarmId}`);
+                    setActiveAlarms(prev => prev.filter(alarm => alarm.id !== alarmId));
+                } catch (error) {
+                    console.error('Error acknowledging alarm:', error);
+                }
+            };
+
+            useEffect(() => {
+                // Initial data fetch
+                fetchSystemStatus();
+                fetchRecentFaults();
+                fetchActiveAlarms();
+                
+                const interval = setInterval(() => {
+                    if (isSimulationRunning) {
+                        fetchSensorData();
+                        fetchSystemStatus();
+                        fetchActiveAlarms();
+                    }
+                }, CONFIG.DASHBOARD.REFRESH_INTERVAL);
+
+                return () => clearInterval(interval);
+            }, [isSimulationRunning, activeSystem]);
+
+            // Sensor Gauge Component
+            const SensorGauge = ({ sensor, value, title, unit, icon }) => {
+                // Ensure value is a number
+                const numValue = parseFloat(value) || 0;
+                
+                const percentage = CONFIG.UTILS.calculatePercentage(numValue, sensor.danger_low, sensor.danger_high);
+                const isAlert = numValue < sensor.warning_low || numValue > sensor.warning_high;
+                const isCritical = numValue < sensor.danger_low || numValue > sensor.danger_high;
+                const circumference = 2 * Math.PI * 45;
+                const strokeDasharray = `${(percentage / 100) * circumference} ${circumference}`;
+                const statusColor = CONFIG.UTILS.getStatusColor(numValue, sensor);
+                
+                return React.createElement('div', { 
+                    className: `sensor-card p-4 rounded-lg shadow ${
+                        isCritical ? 'border-2 border-red-500 fault-indicator' : 
+                        isAlert ? 'border-2 border-yellow-500' : 'border border-gray-200'
+                    }` 
+                },
+                    React.createElement('div', { className: 'flex items-center justify-between mb-3' },
+                        React.createElement('h3', { className: 'text-sm font-semibold text-gray-700 flex items-center' },
+                            React.createElement('span', { className: 'mr-2 text-lg' }, icon),
+                            title
                         ),
-                        React.createElement('div', null,
-                            React.createElement('h4', { className: 'font-bold mb-2' }, 'Safety Precautions'),
-                            React.createElement('ul', { className: 'list-disc pl-5' },
-                                faultInfo.safety_precautions?.map((precaution, index) => 
-                                    React.createElement('li', { key: index }, precaution)
-                                )
+                        isCritical && React.createElement('span', { className: 'text-red-500 text-xl animate-pulse' }, '🚨'),
+                        isAlert && !isCritical && React.createElement('span', { className: 'text-yellow-500 text-xl' }, '⚠️')
+                    ),
+                    React.createElement('div', { className: 'flex items-center space-x-4' },
+                        React.createElement('div', { className: 'flex-1' },
+                            React.createElement('div', { className: 'text-2xl font-bold text-gray-900 mb-1' }, 
+                                CONFIG.UTILS.formatValue(numValue, unit)
+                            ),
+                            React.createElement('div', { className: 'text-xs text-gray-500' }, 
+                                `Normal: ${sensor.min}-${sensor.max}${unit}`
+                            ),
+                            React.createElement('div', { 
+                                className: `text-xs font-medium mt-2 px-2 py-1 rounded-full inline-block ${
+                                    isCritical ? 'bg-red-100 text-red-700' :
+                                    isAlert ? 'bg-yellow-100 text-yellow-700' :
+                                    'bg-green-100 text-green-700'
+                                }`
+                            }, isCritical ? 'Critical' : isAlert ? 'Warning' : 'Normal')
+                        ),
+                        React.createElement('div', { className: 'relative w-24 h-24' },
+                            React.createElement('svg', { className: 'w-full h-full', viewBox: '0 0 100 100' },
+                                React.createElement('circle', {
+                                    cx: '50', cy: '50', r: '45',
+                                    className: 'gauge-circle'
+                                }),
+                                React.createElement('circle', {
+                                    cx: '50', cy: '50', r: '45',
+                                    className: 'gauge-progress',
+                                    stroke: statusColor,
+                                    strokeDasharray: strokeDasharray,
+                                    strokeDashoffset: '0'
+                                })
+                            ),
+                            React.createElement('div', { className: 'absolute inset-0 flex items-center justify-center' },
+                                React.createElement('span', { className: 'text-lg font-bold', style: { color: statusColor } }, `${Math.round(percentage)}%`)
+                            )
+                        )
+                    )
+                );
+            };
+
+            // System Tabs
+            const SystemTabs = () => (
+                React.createElement('div', { className: 'flex space-x-2 mb-6' },
+                    Object.entries(CONFIG.SYSTEMS).map(([key, system]) => 
+                        React.createElement('button', {
+                            key: key,
+                            onClick: () => setActiveSystem(key),
+                            className: `system-tab px-4 py-2 rounded-lg font-medium ${
+                                activeSystem === key ? 'active' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`
+                        },
+                            React.createElement('span', { className: 'mr-2' }, system.icon),
+                            system.name
+                        )
+                    )
+                )
+            );
+
+            // Navigation Component
+            const NavigationBar = () => (
+                React.createElement('div', { className: 'flex space-x-1 mb-2' },
+                    user.dashboardSections.includes('dashboard') &&
+                    React.createElement('button', {
+                        onClick: () => setActiveSection('dashboard'),
+                        className: `nav-link ${
+                            activeSection === 'dashboard' ? 'active' : 'text-gray-600 hover:text-blue-600'
+                        }`
+                    }, 'Dashboard'),
+                    
+                    user.dashboardSections.includes('alarms') &&
+                    React.createElement('button', {
+                        onClick: () => setActiveSection('alarms'),
+                        className: `nav-link ${
+                            activeSection === 'alarms' ? 'active' : 'text-gray-600 hover:text-blue-600'
+                        }`
+                    }, 'Alarms'),
+                    
+                    user.dashboardSections.includes('reports') &&
+                    React.createElement('button', {
+                        onClick: () => setActiveSection('reports'),
+                        className: `nav-link ${
+                            activeSection === 'reports' ? 'active' : 'text-gray-600 hover:text-blue-600'
+                        }`
+                    }, 'Reports'),
+                    
+                    user.dashboardSections.includes('settings') &&
+                    React.createElement('button', {
+                        onClick: () => setActiveSection('settings'),
+                        className: `nav-link ${
+                            activeSection === 'settings' ? 'active' : 'text-gray-600 hover:text-blue-600'
+                        }`
+                    }, 'System Configuration')
+                )
+            );
+
+            // Dashboard View Component
+            const DashboardView = () => {
+                const system = CONFIG.SYSTEMS[activeSystem];
+                const data = sensorData[activeSystem] || [];
+                const latestData = data.length > 0 ? data[data.length - 1] : {};
+                const status = systemStatus[activeSystem];
+                
+                return React.createElement('div', { className: 'space-y-6' },
+                    React.createElement('div', { className: 'flex justify-between items-center' },
+                        React.createElement('h1', { className: 'text-2xl font-bold text-gray-900' }, 'Real-Time Monitoring'),
+                        React.createElement('div', { className: 'flex items-center space-x-4' },
+                            React.createElement('span', { 
+                                className: `inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                                    status.is_running ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                                }`
+                            },
+                                React.createElement('span', { className: 'w-2 h-2 rounded-full bg-current mr-2' }),
+                                status.is_running ? 'System Online' : 'System Offline'
+                            ),
+                            React.createElement('span', { className: 'text-sm text-gray-600 font-medium' },
+                                `Health: ${status.health_score.toFixed(1)}%`
+                            ),
+                            React.createElement('span', { className: 'text-sm text-gray-600 font-medium' },
+                                `Last Update: ${new Date().toLocaleTimeString()}`
                             )
                         )
                     ),
                     
-                    React.createElement('div', { className: 'mt-6 flex justify-end space-x-3' },
-                        React.createElement('button', {
-                            onClick: onClose,
-                            className: 'bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md'
-                        }, 'Close'),
-                        React.createElement('button', {
-                            onClick: () => {
-                                acknowledgeAlarm(fault.id);
-                                onClose();
-                            },
-                            className: 'bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md'
-                        }, 'Acknowledge & Close')
+                    React.createElement(SystemTabs),
+                    
+                    isLoading ? 
+                        React.createElement('div', { className: 'flex justify-center py-12' },
+                            React.createElement('div', { className: 'loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12' })
+                        ) : 
+                        React.createElement(React.Fragment, null,
+                            React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4' },
+                                Object.entries(system.sensors).map(([key, sensor]) => {
+                                    const value = latestData[key] ? latestData[key].value : 0;
+                                    
+                                    return React.createElement(SensorGauge, {
+                                        key: key,
+                                        sensor: sensor,
+                                        value: value,
+                                        title: sensor.name,
+                                        unit: sensor.unit,
+                                        icon: sensor.icon
+                                    });
+                                })
+                            ),
+                            
+                            React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-6' },
+                                Object.entries(system.sensors).map(([key, sensor]) => {
+                                    return React.createElement(SingleParameterChart, {
+                                        key: key,
+                                        data: data,
+                                        dataKey: key,
+                                        sensor: sensor,
+                                        height: 300
+                                    });
+                                })
+                            )
+                        ),
+                    
+                    // Simulation controls
+                    React.createElement('div', { className: 'bg-white p-4 rounded-lg shadow' },
+                        React.createElement('h2', { className: 'text-lg font-semibold mb-4' }, 'Simulation Controls'),
+                        React.createElement('div', { className: 'flex space-x-4' },
+                            !isSimulationRunning ? 
+                                React.createElement('button', {
+                                    onClick: startSimulation,
+                                    className: 'bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md action-button'
+                                }, 'Start Simulation') :
+                                React.createElement('button', {
+                                    onClick: stopSimulation,
+                                    className: 'bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md action-button'
+                                }, 'Stop Simulation'),
+                            
+                            React.createElement('div', { className: 'flex-1' },
+                                React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Inject Fault'),
+                                React.createElement('select', {
+                                    value: faultInjection || '',
+                                    onChange: (e) => injectFault(e.target.value),
+                                    className: 'w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm',
+                                    disabled: !isSimulationRunning
+                                },
+                                    React.createElement('option', { value: '' }, 'Select Fault Type'),
+                                    Object.entries(FAULT_DEFINITIONS).map(([id, fault]) => 
+                                        React.createElement('option', { key: id, value: id }, fault.name)
+                                    )
+                                )
+                            ),
+                            
+                            faultInjection && 
+                                React.createElement('button', {
+                                    onClick: clearFault,
+                                    className: 'bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md action-button'
+                                }, 'Clear Fault')
+                        )
+                    )
+                );
+            };
+
+            // Alarms View Component
+            const AlarmsView = () => (
+                React.createElement('div', { className: 'space-y-6' },
+                    React.createElement('div', { className: 'bg-white p-4 rounded-lg shadow' },
+                        React.createElement('h2', { className: 'text-xl font-bold mb-4 text-gray-800' }, 'Active Alarms'),
+                        activeAlarms.length === 0 ? 
+                            React.createElement('p', { className: 'text-gray-500 text-center py-4' }, 'No active alarms') :
+                            React.createElement('div', { className: 'space-y-3' },
+                                activeAlarms.map(alarm => {
+                                    const faultInfo = FAULT_DEFINITIONS[alarm.fault_type];
+                                    const severityClass = CONFIG.UTILS.getSeverityClass(alarm.severity);
+                                    
+                                    return React.createElement('div', { 
+                                        key: alarm.id,
+                                        className: `p-4 rounded-lg ${severityClass}`
+                                    },
+                                        React.createElement('div', { className: 'flex justify-between items-start' },
+                                            React.createElement('div', null,
+                                                React.createElement('h3', { className: 'font-bold text-lg' }, faultInfo?.name || `Fault ${alarm.fault_type}`),
+                                                React.createElement('p', { className: 'text-sm text-gray-600' }, faultInfo?.description || ''),
+                                                React.createElement('div', { className: 'mt-2 flex items-center space-x-2' },
+                                                    React.createElement('span', { 
+                                                        className: `px-2 py-1 rounded-full text-xs font-medium ${
+                                                            alarm.severity === 'CRITICAL' ? 'bg-red-100 text-red-800' : 
+                                                            alarm.severity === 'HIGH' ? 'bg-orange-100 text-orange-800' : 
+                                                            'bg-yellow-100 text-yellow-800'
+                                                        }`
+                                                    }, alarm.severity),
+                                                    React.createElement('span', { className: 'text-sm' }, `Confidence: ${Math.round(alarm.confidence * 100)}%`),
+                                                    React.createElement('span', { className: 'text-sm' }, new Date(alarm.timestamp).toLocaleString())
+                                                )
+                                            ),
+                                            React.createElement('div', { className: 'flex space-x-2' },
+                                                React.createElement('button', {
+                                                    onClick: () => acknowledgeAlarm(alarm.id),
+                                                    className: 'bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm'
+                                                }, 'Acknowledge'),
+                                                React.createElement('button', {
+                                                    onClick: () => setSelectedFault(alarm),
+                                                    className: 'bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm'
+                                                }, 'Details')
+                                            )
+                                        )
+                                    );
+                                })
+                            )
+                    ),
+                    
+                    React.createElement('div', { className: 'bg-white p-4 rounded-lg shadow' },
+                        React.createElement('h2', { className: 'text-xl font-bold mb-4 text-gray-800' }, 'Recent Faults'),
+                        recentFaults.length === 0 ? 
+                            React.createElement('p', { className: 'text-gray-500 text-center py-4' }, 'No recent faults') :
+                            React.createElement('div', { className: 'space-y-3' },
+                                recentFaults.map(fault => {
+                                    const faultInfo = FAULT_DEFINITIONS[fault.fault_type];
+                                    
+                                    return React.createElement('div', { 
+                                        key: fault.id,
+                                        className: 'p-4 border border-gray-200 rounded-lg'
+                                    },
+                                        React.createElement('div', { className: 'flex justify-between' },
+                                            React.createElement('h3', { className: 'font-bold' }, faultInfo?.name || `Fault ${fault.fault_type}`),
+                                            React.createElement('span', { className: 'text-sm text-gray-500' }, new Date(fault.timestamp).toLocaleDateString())
+                                        ),
+                                        React.createElement('p', { className: 'text-sm text-gray-600 mt-1' }, faultInfo?.description || ''),
+                                        React.createElement('button', {
+                                            onClick: () => setSelectedFault(fault),
+                                            className: 'text-blue-600 hover:text-blue-800 text-sm mt-2'
+                                        }, 'View Details')
+                                    );
+                                })
+                            )
                     )
                 )
-            )
-        );
-    };
+            );
 
-    // Reports View Component
-    const ReportsView = () => (
-        React.createElement('div', { className: 'bg-white p-6 rounded-lg shadow' },
-            React.createElement('h2', { className: 'text-xl font-bold mb-4 text-gray-800' }, 'System Reports'),
-            React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' },
-                React.createElement('div', { className: 'bg-gray-50 p-4 rounded-lg' },
-                    React.createElement('h3', { className: 'font-bold text-lg mb-3' }, 'Fault History'),
-                    React.createElement('p', { className: 'text-gray-600' }, 'View historical fault data and maintenance records')
-                ),
-                React.createElement('div', { className: 'bg-gray-50 p-4 rounded-lg' },
-                    React.createElement('h3', { className: 'font-bold text-lg mb-3' }, 'Performance Trends'),
-                    React.createElement('p', { className: 'text-gray-600' }, 'Analyze system performance over time')
-                ),
-                React.createElement('div', { className: 'bg-gray-50 p-4 rounded-lg' },
-                    React.createElement('h3', { className: 'font-bold text-lg mb-3' }, 'Maintenance Logs'),
-                    React.createElement('p', { className: 'text-gray-600' }, 'Access complete maintenance history')
+            // Fault Detail Modal
+            const FaultDetailModal = ({ fault, onClose }) => {
+                if (!fault) return null;
+                
+                const faultInfo = FAULT_DEFINITIONS[fault.fault_type] || {};
+                const severityClass = CONFIG.UTILS.getSeverityClass(fault.severity);
+                
+                return React.createElement('div', { className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50' },
+                    React.createElement('div', { className: 'bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto' },
+                        React.createElement('div', { className: `p-6 ${severityClass}` },
+                            React.createElement('div', { className: 'flex justify-between items-start' },
+                                React.createElement('h2', { className: 'text-2xl font-bold' }, faultInfo.name),
+                                React.createElement('button', { 
+                                    onClick: onClose,
+                                    className: 'text-gray-500 hover:text-gray-700 text-2xl'
+                                }, '×')
+                            ),
+                            React.createElement('p', { className: 'mt-2 text-gray-700' }, faultInfo.description),
+                            React.createElement('div', { className: 'mt-4 flex space-x-4' },
+                                React.createElement('div', null,
+                                    React.createElement('span', { className: 'font-medium' }, 'Severity:'),
+                                    React.createElement('span', { 
+                                        className: `ml-2 px-2 py-1 rounded-full text-sm ${
+                                            fault.severity === 'CRITICAL' ? 'bg-red-100 text-red-800' : 
+                                            fault.severity === 'HIGH' ? 'bg-orange-100 text-orange-800' : 
+                                            'bg-yellow-100 text-yellow-800'
+                                        }`
+                                    }, fault.severity)
+                                ),
+                                React.createElement('div', null,
+                                    React.createElement('span', { className: 'font-medium' }, 'Confidence:'),
+                                    React.createElement('span', { className: 'ml-2' }, `${Math.round(fault.confidence * 100)}%`)
+                                ),
+                                React.createElement('div', null,
+                                    React.createElement('span', { className: 'font-medium' }, 'Detected:'),
+                                    React.createElement('span', { className: 'ml-2' }, new Date(fault.timestamp).toLocaleString())
+                                )
+                            )
+                        ),
+                        
+                        React.createElement('div', { className: 'p-6' },
+                            React.createElement('h3', { className: 'text-xl font-bold mb-3' }, 'Symptoms'),
+                            React.createElement('ul', { className: 'list-disc pl-5 mb-6' },
+                                faultInfo.symptoms?.map((symptom, index) => 
+                                    React.createElement('li', { key: index, className: 'mb-1' }, symptom)
+                                )
+                            ),
+                            
+                            React.createElement('h3', { className: 'text-xl font-bold mb-3' }, 'Immediate Actions'),
+                            React.createElement('ul', { className: 'list-disc pl-5 mb-6' },
+                                faultInfo.immediate_actions?.map((action, index) => 
+                                    React.createElement('li', { key: index, className: 'mb-1' }, action)
+                                )
+                            ),
+                            
+                            React.createElement('h3', { className: 'text-xl font-bold mb-3' }, 'Maintenance Procedure'),
+                            React.createElement('div', { className: 'maintenance-card mb-6' },
+                                faultInfo.maintenance_steps?.map((step, index) => 
+                                    React.createElement('div', { key: index, className: 'maintenance-step' }, step)
+                                )
+                            ),
+                            
+                            React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
+                                React.createElement('div', null,
+                                    React.createElement('h4', { className: 'font-bold mb-2' }, 'Required Tools'),
+                                    React.createElement('p', null, faultInfo.tools_required?.join(', ') || 'None specified')
+                                ),
+                                React.createElement('div', null,
+                                    React.createElement('h4', { className: 'font-bold mb-2' }, 'Safety Precautions'),
+                                    React.createElement('ul', { className: 'list-disc pl-5' },
+                                        faultInfo.safety_precautions?.map((precaution, index) => 
+                                            React.createElement('li', { key: index }, precaution)
+                                        )
+                                    )
+                                )
+                            ),
+                            
+                            React.createElement('div', { className: 'mt-6 flex justify-end space-x-3' },
+                                React.createElement('button', {
+                                    onClick: onClose,
+                                    className: 'bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md'
+                                }, 'Close'),
+                                React.createElement('button', {
+                                    onClick: () => {
+                                        acknowledgeAlarm(fault.id);
+                                        onClose();
+                                    },
+                                    className: 'bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md'
+                                }, 'Acknowledge & Close')
+                            )
+                        )
+                    )
+                );
+            };
+
+            // Reports View Component
+            const ReportsView = () => (
+                React.createElement('div', { className: 'bg-white p-6 rounded-lg shadow' },
+                    React.createElement('h2', { className: 'text-xl font-bold mb-4 text-gray-800' }, 'System Reports'),
+                    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' },
+                        React.createElement('div', { className: 'bg-gray-50 p-4 rounded-lg' },
+                            React.createElement('h3', { className: 'font-bold text-lg mb-3' }, 'Fault History'),
+                            React.createElement('p', { className: 'text-gray-600' }, 'View historical fault data and maintenance records')
+                        ),
+                        React.createElement('div', { className: 'bg-gray-50 p-4 rounded-lg' },
+                            React.createElement('h3', { className: 'font-bold text-lg mb-3' }, 'Performance Trends'),
+                            React.createElement('p', { className: 'text-gray-600' }, 'Analyze system performance over time')
+                        ),
+                        React.createElement('div', { className: 'bg-gray-50 p-4 rounded-lg' },
+                            React.createElement('h3', { className: 'font-bold text-lg mb-3' }, 'Maintenance Logs'),
+                            React.createElement('p', { className: 'text-gray-600' }, 'Access complete maintenance history')
+                        )
+                    ),
+                    React.createElement('div', { className: 'mt-6' },
+                        React.createElement('button', {
+                            className: 'bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md'
+                        }, 'Generate Full Report')
+                    )
                 )
-            ),
-            React.createElement('div', { className: 'mt-6' },
-                React.createElement('button', {
-                    className: 'bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md'
-                }, 'Generate Full Report')
-            )
-        )
-    );
+            );
 
-    // Settings View Component
-    const SettingsView = () => (
-        React.createElement('div', { className: 'bg-white p-6 rounded-lg shadow' },
-            React.createElement('h2', { className: 'text-xl font-bold mb-4 text-gray-800' }, 'System Configuration'),
-            React.createElement('div', { className: 'space-y-6' },
-                React.createElement('div', null,
-                    React.createElement('h3', { className: 'font-bold mb-2' }, 'Alert Thresholds'),
-                    React.createElement('p', { className: 'text-gray-600 mb-4' }, 'Configure sensitivity levels for anomaly detection'),
-                    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
-                        Object.entries(CONFIG.SYSTEMS[activeSystem].sensors).map(([key, sensor]) => 
-                            React.createElement('div', { key: key, className: 'p-4 border border-gray-200 rounded-lg' },
-                                React.createElement('h4', { className: 'font-medium mb-2' }, sensor.name),
-                                React.createElement('div', { className: 'space-y-3' },
-                                    React.createElement('div', null,
-                                        React.createElement('label', { className: 'block text-sm text-gray-600' }, 'Warning Threshold'),
-                                        React.createElement('input', {
-                                            type: 'range',
-                                            min: sensor.danger_low,
-                                            max: sensor.danger_high,
-                                            value: sensor.warning_low,
-                                            className: 'w-full'
-                                        })
-                                    ),
-                                    React.createElement('div', null,
-                                        React.createElement('label', { className: 'block text-sm text-gray-600' }, 'Critical Threshold'),
-                                        React.createElement('input', {
-                                            type: 'range',
-                                            min: sensor.danger_low,
-                                            max: sensor.danger_high,
-                                            value: sensor.danger_low,
-                                            className: 'w-full'
-                                        })
+            // Settings View Component
+            const SettingsView = () => (
+                React.createElement('div', { className: 'bg-white p-6 rounded-lg shadow' },
+                    React.createElement('h2', { className: 'text-xl font-bold mb-4 text-gray-800' }, 'System Configuration'),
+                    React.createElement('div', { className: 'space-y-6' },
+                        React.createElement('div', null,
+                            React.createElement('h3', { className: 'font-bold mb-2' }, 'Alert Thresholds'),
+                            React.createElement('p', { className: 'text-gray-600 mb-4' }, 'Configure sensitivity levels for anomaly detection'),
+                            React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
+                                Object.entries(CONFIG.SYSTEMS[activeSystem].sensors).map(([key, sensor]) => 
+                                    React.createElement('div', { key: key, className: 'p-4 border border-gray-200 rounded-lg' },
+                                        React.createElement('h4', { className: 'font-medium mb-2' }, sensor.name),
+                                        React.createElement('div', { className: 'space-y-3' },
+                                            React.createElement('div', null,
+                                                React.createElement('label', { className: 'block text-sm text-gray-600' }, 'Warning Threshold'),
+                                                React.createElement('input', {
+                                                    type: 'range',
+                                                    min: sensor.danger_low,
+                                                    max: sensor.danger_high,
+                                                    value: sensor.warning_low,
+                                                    className: 'w-full'
+                                                })
+                                            ),
+                                            React.createElement('div', null,
+                                                React.createElement('label', { className: 'block text-sm text-gray-600' }, 'Critical Threshold'),
+                                                React.createElement('input', {
+                                                    type: 'range',
+                                                    min: sensor.danger_low,
+                                                    max: sensor.danger_high,
+                                                    value: sensor.danger_low,
+                                                    className: 'w-full'
+                                                })
+                                            )
+                                        )
                                     )
                                 )
                             )
-                        )
-                    )
-                ),
-                
-                React.createElement('div', null,
-                    React.createElement('h3', { className: 'font-bold mb-2' }, 'Notification Settings'),
-                    React.createElement('p', { className: 'text-gray-600 mb-4' }, 'Set up alert delivery methods'),
-                    React.createElement('div', { className: 'space-y-3' },
-                        React.createElement('div', { className: 'flex items-center' },
-                            React.createElement('input', { type: 'checkbox', id: 'email-notify', className: 'mr-2' }),
-                            React.createElement('label', { htmlFor: 'email-notify' }, 'Email Notifications')
                         ),
-                        React.createElement('div', { className: 'flex items-center' },
-                            React.createElement('input', { type: 'checkbox', id: 'sms-notify', className: 'mr-2' }),
-                            React.createElement('label', { htmlFor: 'sms-notify' }, 'SMS Alerts')
-                        ),
-                        React.createElement('div', { className: 'flex items-center' },
-                            React.createElement('input', { type: 'checkbox', id: 'app-notify', className: 'mr-2' }),
-                            React.createElement('label', { htmlFor: 'app-notify' }, 'In-App Notifications')
-                        )
-                    )
-                ),
-                
-                React.createElement('div', { className: 'flex justify-end' },
-                    React.createElement('button', {
-                        className: 'bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md'
-                    }, 'Save Configuration')
-                )
-            )
-        )
-    );
-
-    // Main App Render Logic
-    if (!user) {
-        // Redirect to login if not authenticated
-        window.location.href = '/login';
-        return null;
-    }
-
-    return React.createElement('div', { className: 'flex flex-col min-h-screen bg-gray-100' },
-        React.createElement('header', { className: 'bg-white shadow-sm border-b border-gray-200' },
-            React.createElement('div', { className: 'flex items-center justify-between px-6 py-4' },
-                React.createElement('div', { className: 'flex items-center space-x-4' },
-                    React.createElement('h2', { className: 'text-xl font-bold text-gray-800' }, 'Industrial IoT Dashboard')
-                ),
-                React.createElement('div', { className: 'flex items-center space-x-4' },
-                    React.createElement('div', { className: 'flex items-center space-x-3 bg-gray-50 rounded-lg px-4 py-2' },
+                        
                         React.createElement('div', null,
-                            React.createElement('span', { className: 'text-sm font-semibold text-gray-700 block' }, user.name),
-                            React.createElement('span', { 
-                                className: 'text-xs px-2 py-1 rounded-full font-medium',
-                                style: { 
-                                    backgroundColor: CONFIG.ROLES[user.role].color + '20', 
-                                    color: CONFIG.ROLES[user.role].color
-                                }
-                            }, user.role.toUpperCase())
+                            React.createElement('h3', { className: 'font-bold mb-2' }, 'Notification Settings'),
+                            React.createElement('p', { className: 'text-gray-600 mb-4' }, 'Set up alert delivery methods'),
+                            React.createElement('div', { className: 'space-y-3' },
+                                React.createElement('div', { className: 'flex items-center' },
+                                    React.createElement('input', { type: 'checkbox', id: 'email-notify', className: 'mr-2' }),
+                                    React.createElement('label', { htmlFor: 'email-notify' }, 'Email Notifications')
+                                ),
+                                React.createElement('div', { className: 'flex items-center' },
+                                    React.createElement('input', { type: 'checkbox', id: 'sms-notify', className: 'mr-2' }),
+                                    React.createElement('label', { htmlFor: 'sms-notify' }, 'SMS Alerts')
+                                ),
+                                React.createElement('div', { className: 'flex items-center' },
+                                    React.createElement('input', { type: 'checkbox', id: 'app-notify', className: 'mr-2' }),
+                                    React.createElement('label', { htmlFor: 'app-notify' }, 'In-App Notifications')
+                                )
+                            )
+                        ),
+                        
+                        React.createElement('div', { className: 'flex justify-end' },
+                            React.createElement('button', {
+                                className: 'bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md'
+                            }, 'Save Configuration')
+                        )
+                    )
+                )
+            );
+
+            // Main App Render Logic
+            if (!user) {
+                // Redirect to login if not authenticated
+                window.location.href = '/login';
+                return null;
+            }
+
+            return React.createElement('div', { className: 'flex flex-col min-h-screen bg-gray-100' },
+                React.createElement('header', { className: 'bg-white shadow-sm border-b border-gray-200' },
+                    React.createElement('div', { className: 'flex items-center justify-between px-6 py-4' },
+                        React.createElement('div', { className: 'flex items-center space-x-4' },
+                            React.createElement('h2', { className: 'text-xl font-bold text-gray-800' }, 'Industrial IoT Dashboard')
+                        ),
+                        React.createElement('div', { className: 'flex items-center space-x-4' },
+                            React.createElement('div', { className: 'flex items-center space-x-3 bg-gray-50 rounded-lg px-4 py-2' },
+                                React.createElement('div', null,
+                                    React.createElement('span', { className: 'text-sm font-semibold text-gray-700 block' }, user.name),
+                                    React.createElement('span', { 
+                                        className: 'text-xs px-2 py-1 rounded-full font-medium',
+                                        style: { 
+                                            backgroundColor: CONFIG.ROLES[user.role].color + '20', 
+                                            color: CONFIG.ROLES[user.role].color
+                                        }
+                                    }, user.role.toUpperCase())
+                                )
+                            ),
+                            React.createElement('button', {
+                                onClick: () => { window.location.href = '/logout'; },
+                                className: 'text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100',
+                                title: 'Logout'
+                            }, React.createElement('span', { className: 'text-xl' }, '🚪'))
                         )
                     ),
-                    React.createElement('button', {
-                        onClick: () => { window.location.href = '/logout'; },
-                        className: 'text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100',
-                        title: 'Logout'
-                    }, React.createElement('span', { className: 'text-xl' }, '🚪'))
-                )
-            ),
-            React.createElement('div', { className: 'px-6 pb-2' },
-                React.createElement(NavigationBar)
-            )
-        ),
-        React.createElement('main', { className: 'flex-1 p-6' },
-            activeSection === 'dashboard' ? React.createElement(DashboardView) :
-            activeSection === 'alarms' ? React.createElement(AlarmsView) :
-            activeSection === 'reports' ? React.createElement(ReportsView) :
-            activeSection === 'settings' ? React.createElement(SettingsView) :
-            React.createElement(DashboardView)
-        ),
-        
-        // Fault Detail Modal
-        selectedFault && React.createElement(FaultDetailModal, {
-            fault: selectedFault,
-            onClose: () => setSelectedFault(null)
-        })
-    );
-}
+                    React.createElement('div', { className: 'px-6 pb-2' },
+                        React.createElement(NavigationBar)
+                    )
+                ),
+                React.createElement('main', { className: 'flex-1 p-6' },
+                    activeSection === 'dashboard' ? React.createElement(DashboardView) :
+                    activeSection === 'alarms' ? React.createElement(AlarmsView) :
+                    activeSection === 'reports' ? React.createElement(ReportsView) :
+                    activeSection === 'settings' ? React.createElement(SettingsView) :
+                    React.createElement(DashboardView)
+                ),
+                
+                // Fault Detail Modal
+                selectedFault && React.createElement(FaultDetailModal, {
+                    fault: selectedFault,
+                    onClose: () => setSelectedFault(null)
+                })
+            );
+        }
 
-// Initialize the app
-ReactDOM.render(React.createElement(DashboardApp), document.getElementById('root'));
-</script>
+        // Initialize the app
+        ReactDOM.render(React.createElement(DashboardApp), document.getElementById('root'));
+    </script>
 </body>
 </html>
